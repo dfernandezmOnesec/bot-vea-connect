@@ -1,0 +1,20 @@
+{
+  "scriptFile": "batch_start_processing.py",
+  "bindings": [
+    {
+      "authLevel": "function",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": [
+        "GET"
+      ],
+      "route": "batch-start-processing"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "$return"
+    }
+  ]
+} 
