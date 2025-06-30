@@ -1,0 +1,25 @@
+# Azure Functions local settings
+local.settings.json
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# VSCode
+.vscode/
+
+# Test outputs
+htmlcov/
+.coverage
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db 
