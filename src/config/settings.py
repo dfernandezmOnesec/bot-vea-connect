@@ -1,9 +1,10 @@
-from pydantic import BaseSettings, Field
+from pydantic_settings import BaseSettings
+from pydantic import Field
 from typing import Optional
 
 class Settings(BaseSettings):
     # Azure
-    azure_webjobs_storage: str = Field(..., env="AzureWebJobsStorage")
+    azure_webjobs_storage: Optional[str] = Field(None, env="AzureWebJobsStorage")
     azure_storage_connection_string: str = Field(..., env="AZURE_STORAGE_CONNECTION_STRING")
     blob_account_name: str = Field(..., env="BLOB_ACCOUNT_NAME")
     blob_account_key: str = Field(..., env="BLOB_ACCOUNT_KEY")
@@ -46,5 +47,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "allow"
 
 settings = Settings() 

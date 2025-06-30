@@ -1,0 +1,21 @@
+{
+  "scriptFile": "whatsapp_bot.py",
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "route": "whatsapp-bot"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "$return"
+    }
+  ]
+} 
