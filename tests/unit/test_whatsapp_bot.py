@@ -8,15 +8,7 @@ import pytest
 import json
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
-from src.whatsapp_bot.whatsapp_bot import (
-    main,
-    handle_webhook_verification,
-    handle_message_processing,
-    generate_rag_response,
-    build_context_prompt,
-    generate_contextual_response,
-    generate_general_response
-)
+from src.whatsapp_bot.whatsapp_bot import main, WhatsAppBot
 
 class TestWhatsAppBot:
     """Test cases for WhatsAppBot function."""
@@ -29,39 +21,42 @@ class TestWhatsAppBot:
     @pytest.fixture
     def mock_settings(self):
         """Mock settings with verify token."""
-        with patch('src.whatsapp_bot.whatsapp_bot.settings') as mock:
-            mock.verify_token = "test_verify_token_123"
-            yield mock
+        with patch('src.whatsapp_bot.whatsapp_bot.get_settings') as mock:
+            mock.return_value.whatsapp_verify_token = "test_verify_token_123"
+            yield mock.return_value
     
     @pytest.fixture
     def mock_services(self):
         """Mock all external services."""
-        with patch('src.whatsapp_bot.whatsapp_bot.openai_service') as mock_openai, \
-             patch('src.whatsapp_bot.whatsapp_bot.redis_service') as mock_redis, \
-             patch('src.whatsapp_bot.whatsapp_bot.whatsapp_service') as mock_whatsapp:
+        with patch('src.whatsapp_bot.whatsapp_bot.WhatsAppService') as mock_whatsapp, \
+             patch('src.whatsapp_bot.whatsapp_bot.OpenAIService') as mock_openai, \
+             patch('src.whatsapp_bot.whatsapp_bot.RedisService') as mock_redis:
             
             # Mock OpenAI service methods directly
-            mock_openai.generate_embeddings.return_value = [0.1, 0.2, 0.3]
-            mock_openai.generate_chat_completion.return_value = "Respuesta generada"
+            mock_openai_instance = mock_openai.return_value
+            mock_openai_instance.generate_embeddings.return_value = [0.1, 0.2, 0.3]
+            mock_openai_instance.generate_chat_completion.return_value = "Respuesta generada"
             
             # Mock Redis service methods directly
-            mock_redis.semantic_search.return_value = []
+            mock_redis_instance = mock_redis.return_value
+            mock_redis_instance.semantic_search.return_value = []
             
             # Mock WhatsApp service methods directly
-            mock_whatsapp.process_webhook_event.return_value = {
+            mock_whatsapp_instance = mock_whatsapp.return_value
+            mock_whatsapp_instance.process_webhook_event.return_value = {
                 "event_type": "message",
                 "message_type": "text",
                 "message_content": "Hola",
                 "sender_id": "123456789",
                 "message_id": "msg_123"
             }
-            mock_whatsapp.send_text_message.return_value = True
-            mock_whatsapp.mark_message_as_read.return_value = True
+            mock_whatsapp_instance.send_text_message.return_value = True
+            mock_whatsapp_instance.mark_message_as_read.return_value = True
             
             yield {
-                'openai': mock_openai,
-                'redis': mock_redis,
-                'whatsapp': mock_whatsapp
+                'openai': mock_openai_instance,
+                'redis': mock_redis_instance,
+                'whatsapp': mock_whatsapp_instance
             }
 
     def test_main_get_request_webhook_verification(self, mock_request, mock_settings):

@@ -297,7 +297,7 @@ class TestBatchPushResults:
         mock_redis_service.store_embedding.side_effect = Exception("Redis error")
         
         # Act & Assert
-        with pytest.raises(Exception, match="Failed to store document embeddings"):
+        with pytest.raises(Exception, match="Redis error"):
             store_document_embeddings("test_doc", "test.pdf", mock_embeddings, mock_file_metadata)
 
     def test_update_blob_metadata_success(self):
@@ -369,64 +369,58 @@ class TestTextExtraction:
         assert result == "Extracted text from image"
         mock_vision_service.extract_text_from_image_file.assert_called_once_with("/tmp/test.xyz")
 
-    @patch('src.processing.batch_push_results.PyPDF2')
-    def test_extract_text_from_pdf_success(self, mock_pypdf2):
-        """Test successful PDF text extraction."""
+    @patch('src.processing.batch_push_results.PyPDF2.PdfReader')
+    def test_extract_text_from_pdf_success(self, mock_pdf_reader):
+        """Test extracción exitosa de texto de PDF."""
         # Arrange
         mock_reader = Mock()
-        mock_page1 = Mock()
-        mock_page1.extract_text.return_value = "Page 1 content"
-        mock_page2 = Mock()
-        mock_page2.extract_text.return_value = "Page 2 content"
-        mock_reader.pages = [mock_page1, mock_page2]
-        mock_pypdf2.PdfReader.return_value = mock_reader
+        mock_reader.pages = [Mock(), Mock()]
+        mock_reader.pages[0].extract_text.return_value = "Página 1 del documento"
+        mock_reader.pages[1].extract_text.return_value = "Página 2 del documento"
+        mock_pdf_reader.return_value = mock_reader
         
         # Act
-        with patch('builtins.open', mock_open(read_data=b"pdf content")):
-            result = extract_text_from_pdf("/tmp/test.pdf")
+        result = extract_text_from_pdf("/tmp/test.pdf")
         
         # Assert
-        assert "Page 1 content" in result
-        assert "Page 2 content" in result
+        assert result == "Página 1 del documento\nPágina 2 del documento"
+        mock_pdf_reader.assert_called_once_with("/tmp/test.pdf")
 
-    @patch('src.processing.batch_push_results.PyPDF2')
-    def test_extract_text_from_pdf_failure(self, mock_pypdf2):
-        """Test PDF text extraction failure."""
+    @patch('src.processing.batch_push_results.PyPDF2.PdfReader')
+    def test_extract_text_from_pdf_failure(self, mock_pdf_reader):
+        """Test fallo en extracción de texto de PDF."""
         # Arrange
-        mock_pypdf2.PdfReader.side_effect = Exception("PDF error")
+        mock_pdf_reader.side_effect = Exception("PDF error")
         
         # Act & Assert
-        with pytest.raises(Exception, match="Failed to extract text from PDF"):
-            with patch('builtins.open', mock_open(read_data=b"pdf content")):
-                extract_text_from_pdf("/tmp/test.pdf")
+        with pytest.raises(Exception, match="PDF error"):
+            extract_text_from_pdf("/tmp/test.pdf")
 
     @patch('src.processing.batch_push_results.Document')
     def test_extract_text_from_word_success(self, mock_document):
-        """Test successful Word document text extraction."""
+        """Test extracción exitosa de texto de Word."""
         # Arrange
         mock_doc = Mock()
-        mock_paragraph1 = Mock()
-        mock_paragraph1.text = "Paragraph 1"
-        mock_paragraph2 = Mock()
-        mock_paragraph2.text = "Paragraph 2"
-        mock_doc.paragraphs = [mock_paragraph1, mock_paragraph2]
+        mock_doc.paragraphs = [Mock(), Mock()]
+        mock_doc.paragraphs[0].text = "Párrafo 1 del documento"
+        mock_doc.paragraphs[1].text = "Párrafo 2 del documento"
         mock_document.return_value = mock_doc
         
         # Act
         result = extract_text_from_word("/tmp/test.docx")
         
         # Assert
-        assert "Paragraph 1" in result
-        assert "Paragraph 2" in result
+        assert result == "Párrafo 1 del documento\nPárrafo 2 del documento"
+        mock_document.assert_called_once_with("/tmp/test.docx")
 
     @patch('src.processing.batch_push_results.Document')
     def test_extract_text_from_word_failure(self, mock_document):
-        """Test Word document text extraction failure."""
+        """Test fallo en extracción de texto de Word."""
         # Arrange
         mock_document.side_effect = Exception("Word error")
         
         # Act & Assert
-        with pytest.raises(Exception, match="Failed to extract text from Word document"):
+        with pytest.raises(Exception, match="Word error"):
             extract_text_from_word("/tmp/test.docx")
 
     def test_extract_text_from_text_file_success(self):
@@ -477,4 +471,12 @@ class TestTextExtraction:
         
         # Act & Assert
         with pytest.raises(Exception, match="Failed to extract text from test.jpg"):
-            extract_text_from_file("/tmp/test.jpg", "test.jpg", "image/jpeg") 
+            extract_text_from_file("/tmp/test.jpg", "test.jpg", "image/jpeg")
+
+
+def setup_module(module):
+    import sys
+    import types
+    # Mock PyPDF2 y Document como atributos del módulo para patch
+    sys.modules['src.processing.batch_push_results'].PyPDF2 = types.SimpleNamespace(PdfReader=Mock())
+    sys.modules['src.processing.batch_push_results'].Document = Mock() 

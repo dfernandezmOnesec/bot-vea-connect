@@ -12,9 +12,10 @@ import uuid
 import json
 import re
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, Tuple
 from pathlib import Path
 import mimetypes
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -338,7 +339,6 @@ def retry_operation(operation, max_retries: int = 3, delay: float = 1.0):
                     wait_time = delay * (2 ** attempt)
                     logger.warning(f"Operation failed (attempt {attempt + 1}/{max_retries + 1}), retrying in {wait_time}s: {e}")
                     
-                    import time
                     time.sleep(wait_time)
                 else:
                     logger.error(f"Operation failed after {max_retries + 1} attempts")
@@ -406,4 +406,361 @@ def sanitize_log_message(message: str) -> str:
         
     except Exception as e:
         logger.error(f"Failed to sanitize log message: {e}")
-        return message 
+        return message
+
+def setup_logging(level: int = logging.INFO, log_file: Optional[str] = None, name: str = "bot_vea_connect") -> logging.Logger:
+    """
+    Configura el logging global del proyecto.
+    Args:
+        level: Nivel de logging (por defecto INFO)
+        log_file: Ruta a un archivo de log (opcional)
+        name: Nombre del logger (por defecto bot_vea_connect)
+    Returns:
+        logging.Logger: Logger configurado
+    """
+    log_format = '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
+    handlers = [logging.StreamHandler()]
+    if log_file:
+        handlers.append(logging.FileHandler(log_file))
+    logging.basicConfig(level=level, format=log_format, handlers=handlers, force=True)
+    
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    return logger
+
+def parse_whatsapp_message(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extrae información relevante de un mensaje de WhatsApp recibido vía webhook.
+    Soporta mensajes de texto, imagen, audio, documento y maneja casos edge.
+    Args:
+        payload: Diccionario recibido del webhook de WhatsApp
+    Returns:
+        Dict con los campos extraídos:
+            - type: Tipo de mensaje (text, image, audio, document, etc.)
+            - from: Número del remitente
+            - timestamp: Timestamp del mensaje
+            - content: Texto del mensaje (si aplica)
+            - media_id: ID del archivo multimedia (si aplica)
+            - raw: El mensaje original extraído
+    """
+    try:
+        entry = payload.get("entry", [{}])[0]
+        changes = entry.get("changes", [{}])[0]
+        value = changes.get("value", {})
+        messages = value.get("messages", [{}])
+        if not messages or not isinstance(messages, list):
+            return None
+        msg = messages[0]
+        msg_type = msg.get("type")
+        sender = msg.get("from")
+        timestamp = msg.get("timestamp")
+        result = {
+            "type": msg_type,
+            "from": sender,
+            "timestamp": timestamp,
+            "raw": msg
+        }
+        if msg_type == "text":
+            result["content"] = msg.get("text", {}).get("body", "")
+        elif msg_type == "image":
+            result["media_id"] = msg.get("image", {}).get("id")
+            result["mime_type"] = msg.get("image", {}).get("mime_type")
+        elif msg_type == "audio":
+            result["media_id"] = msg.get("audio", {}).get("id")
+            result["mime_type"] = msg.get("audio", {}).get("mime_type")
+        elif msg_type == "document":
+            result["media_id"] = msg.get("document", {}).get("id")
+            result["mime_type"] = msg.get("document", {}).get("mime_type")
+        return result
+    except Exception as e:
+        logger.error(f"Error al parsear mensaje de WhatsApp: {e}")
+        return None
+
+def extract_media_info(media_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extraer información de archivos multimedia de WhatsApp.
+    
+    Args:
+        media_data: Datos del archivo multimedia
+        
+    Returns:
+        Dict con información del archivo multimedia
+    """
+    try:
+        if not media_data or not media_data.get("id"):
+            return None
+        media_info = {
+            "media_id": media_data.get("id"),
+            "id": media_data.get("id"),
+            "mime_type": media_data.get("mime_type"),
+            "sha256": media_data.get("sha256"),
+            "filename": media_data.get("filename"),
+            "url": media_data.get("url") if "url" in media_data else None
+        }
+        return media_info
+    except Exception as e:
+        logger.error(f"Error extrayendo información multimedia: {str(e)}")
+        return None
+
+def format_response(message: str, success: bool = True, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """
+    Formatear respuesta para WhatsApp.
+    
+    Args:
+        message: Mensaje a enviar
+        success: Si la operación fue exitosa
+        data: Datos adicionales
+        
+    Returns:
+        Dict con respuesta formateada
+    """
+    try:
+        response = {
+            "success": success,
+            "message": message,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        if data:
+            response["data"] = data
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error formateando respuesta: {str(e)}")
+        return {
+            "success": False,
+            "message": "Lo siento, hubo un error procesando tu mensaje.",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+def create_error_response(message: str, error_code: str = None, details: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """
+    Crear respuesta de error estandarizada.
+    
+    Args:
+        message: Mensaje de error
+        error_code: Código de error
+        details: Detalles adicionales del error
+        
+    Returns:
+        Dict con respuesta de error
+    """
+    response = {
+        "success": False,
+        "error": True,
+        "message": message,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    if error_code:
+        response["error_code"] = error_code
+    if details:
+        response["details"] = details
+    return response
+
+def validate_phone_number(phone_number: str) -> bool:
+    """
+    Validar formato de número de teléfono.
+    
+    Args:
+        phone_number: Número de teléfono a validar
+        
+    Returns:
+        True si es válido, False en caso contrario
+    """
+    try:
+        if not phone_number:
+            return False
+        
+        # Remover caracteres no numéricos
+        clean_number = re.sub(r'[^\d]', '', phone_number)
+        
+        # Validar longitud mínima (7 dígitos) y máxima (15 dígitos)
+        if len(clean_number) < 7 or len(clean_number) > 15:
+            return False
+        
+        # Validar que solo contenga dígitos
+        if not clean_number.isdigit():
+            return False
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error validando número de teléfono: {str(e)}")
+        return False
+
+def sanitize_text(text: str) -> str:
+    """
+    Sanitizar texto para evitar inyección de código.
+    
+    Args:
+        text: Texto a sanitizar
+        
+    Returns:
+        Texto sanitizado
+    """
+    try:
+        if not text:
+            return ""
+        
+        # Remover caracteres peligrosos
+        sanitized = re.sub(r'[<>"\']', '', text)
+        # Remover saltos de línea y tabulaciones
+        sanitized = re.sub(r'[\n\t\r]', '', sanitized)
+        
+        # Limitar longitud
+        if len(sanitized) > 1000:
+            sanitized = sanitized[:1000]
+        
+        return sanitized.strip()
+        
+    except Exception as e:
+        logger.error(f"Error sanitizando texto: {str(e)}")
+        return ""
+
+def generate_session_id(phone_number: Optional[str] = None) -> str:
+    """
+    Generar ID único para sesión de usuario.
+    
+    Args:
+        phone_number: Número de teléfono del usuario (opcional)
+        
+    Returns:
+        ID único de sesión
+    """
+    try:
+        timestamp = datetime.utcnow().isoformat()
+        unique_id = str(uuid.uuid4())
+        
+        if phone_number:
+            return f"{phone_number}_{timestamp}_{unique_id}"
+        else:
+            return f"session_{timestamp}_{unique_id}"
+        
+    except Exception as e:
+        logger.error(f"Error generando ID de sesión: {str(e)}")
+        return f"session_{int(time.time())}"
+
+def rate_limit_check(redis_service, phone_number: str, max_requests: int = 10, window_seconds: int = 60) -> bool:
+    """
+    Verificar límite de velocidad para un número de teléfono.
+    
+    Args:
+        redis_service: Servicio Redis
+        phone_number: Número de teléfono
+        max_requests: Máximo número de requests permitidos
+        window_seconds: Ventana de tiempo en segundos
+        
+    Returns:
+        True si está dentro del límite, False si excede
+    """
+    try:
+        if not redis_service:
+            return True  # Si no hay Redis, permitir
+        
+        key = f"rate_limit:{phone_number}"
+        current_time = int(time.time())
+        
+        # Obtener requests actuales
+        current_requests = redis_service.get(key)
+        if current_requests is None:
+            current_requests = 0
+        else:
+            current_requests = int(current_requests)
+        
+        # Verificar límite
+        if current_requests >= max_requests:
+            return False
+        
+        # Incrementar contador
+        redis_service.setex(key, window_seconds, current_requests + 1)
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error verificando límite de velocidad: {str(e)}")
+        return True  # En caso de error, permitir
+
+def validate_environment_variables(required_vars: Optional[List[str]] = None) -> bool:
+    """
+    Validar que todas las variables de entorno requeridas estén configuradas.
+    
+    Args:
+        required_vars: Lista de variables requeridas (opcional, usa lista por defecto si no se proporciona)
+        
+    Returns:
+        Dict con el estado de validación de cada variable
+    """
+    if required_vars is None:
+        required_vars = [
+            "AZURE_OPENAI_ENDPOINT",
+            "AZURE_OPENAI_API_KEY", 
+            "REDIS_CONNECTION_STRING",
+            "WHATSAPP_TOKEN",
+            "WHATSAPP_PHONE_NUMBER_ID"
+        ]
+    for var in required_vars:
+        value = os.getenv(var)
+        if not value or not value.strip():
+            logger.warning(f"Variable de entorno faltante o vacía: {var}")
+            raise ValueError(f"Missing required environment variable: {var}")
+    return True
+
+def retry_with_backoff(func, max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0):
+    """
+    Ejecutar función con reintentos y backoff exponencial.
+    
+    Args:
+        func: Función a ejecutar
+        max_retries: Número máximo de reintentos
+        base_delay: Delay base en segundos
+        max_delay: Delay máximo en segundos
+        
+    Returns:
+        Resultado de la función
+        
+    Raises:
+        Exception: Si todos los reintentos fallan
+    """
+    last_exception = None
+    
+    for attempt in range(max_retries + 1):
+        try:
+            return func()
+        except Exception as e:
+            last_exception = e
+            
+            if attempt == max_retries:
+                logger.error(f"Función falló después de {max_retries} reintentos: {str(e)}")
+                raise
+            
+            # Calcular delay con backoff exponencial
+            delay = min(base_delay * (2 ** attempt), max_delay)
+            logger.warning(f"Intento {attempt + 1} falló, reintentando en {delay}s: {str(e)}")
+            time.sleep(delay)
+    
+    raise last_exception
+
+def validate_json_schema(data: Dict[str, Any], schema: Dict[str, Any]) -> bool:
+    """
+    Validar datos contra un esquema JSON.
+    
+    Args:
+        data: Datos a validar
+        schema: Esquema JSON para validación
+        
+    Returns:
+        True si los datos son válidos, False en caso contrario
+    """
+    try:
+        from jsonschema import validate as jsonschema_validate, SchemaError
+        try:
+            jsonschema_validate(instance=data, schema=schema)
+            return True
+        except SchemaError:
+            return False
+        except Exception:
+            return False
+    except ImportError:
+        logger.warning("jsonschema no está instalado, saltando validación")
+        return True 
