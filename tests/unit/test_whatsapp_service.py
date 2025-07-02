@@ -8,7 +8,7 @@ with mocked requests and full coverage of all methods.
 import pytest
 from unittest.mock import patch, Mock, MagicMock
 from requests.exceptions import HTTPError, RequestException
-from src.shared_code.whatsapp_service import WhatsAppService
+from shared_code.whatsapp_service import WhatsAppService
 
 class TestWhatsAppService:
     """Test cases for WhatsAppService class."""

@@ -8,7 +8,7 @@ with mocked AzureOpenAI client and full coverage of all methods.
 import pytest
 from unittest.mock import patch, Mock, MagicMock
 from openai import BadRequestError, AuthenticationError, RateLimitError
-from src.shared_code.openai_service import OpenAIService
+from shared_code.openai_service import OpenAIService
 
 class TestOpenAIService:
     """Test cases for OpenAIService class."""
@@ -50,17 +50,38 @@ class TestOpenAIService:
         assert "Hola" in result
 
     def test_generate_chat_completion_bad_request(self, openai_service):
-        openai_service.chat_client.chat.completions.create.side_effect = BadRequestError("Bad request")
+        mock_response = Mock()
+        mock_response.status_code = 400
+        mock_response.text = "Bad request"
+        openai_service.chat_client.chat.completions.create.side_effect = BadRequestError(
+            message="Bad request",
+            response=mock_response,
+            body={}
+        )
         with pytest.raises(BadRequestError):
             openai_service.generate_chat_completion([{"role": "user", "content": "Hola"}])
 
     def test_generate_chat_completion_auth_error(self, openai_service):
-        openai_service.chat_client.chat.completions.create.side_effect = AuthenticationError("Auth error")
+        mock_response = Mock()
+        mock_response.status_code = 401
+        mock_response.text = "Auth error"
+        openai_service.chat_client.chat.completions.create.side_effect = AuthenticationError(
+            message="Auth error",
+            response=mock_response,
+            body={}
+        )
         with pytest.raises(AuthenticationError):
             openai_service.generate_chat_completion([{"role": "user", "content": "Hola"}])
 
     def test_generate_chat_completion_rate_limit(self, openai_service):
-        openai_service.chat_client.chat.completions.create.side_effect = RateLimitError("Rate limit")
+        mock_response = Mock()
+        mock_response.status_code = 429
+        mock_response.text = "Rate limit"
+        openai_service.chat_client.chat.completions.create.side_effect = RateLimitError(
+            message="Rate limit",
+            response=mock_response,
+            body={}
+        )
         with pytest.raises(RateLimitError):
             openai_service.generate_chat_completion([{"role": "user", "content": "Hola"}])
 

@@ -8,7 +8,7 @@ import os
 from unittest.mock import Mock, patch, MagicMock, mock_open
 from pathlib import Path
 import azure.functions as func
-from src.processing.blob_trigger_processor import (
+from processing.blob_trigger_processor import (
     main, 
     extract_text_from_file, 
     extract_text_from_pdf,
@@ -62,17 +62,17 @@ class TestBlobTriggerProcessor:
     @pytest.fixture
     def mock_services(self):
         """Mock de todos los servicios"""
-        with patch('src.processing.blob_trigger_processor.blob_storage_service') as mock_blob, \
-             patch('src.processing.blob_trigger_processor.openai_service') as mock_openai, \
-             patch('src.processing.blob_trigger_processor.redis_service') as mock_redis, \
-             patch('src.processing.blob_trigger_processor.vision_service') as mock_vision, \
-             patch('src.processing.blob_trigger_processor.generate_document_id') as mock_generate_id, \
-             patch('src.processing.blob_trigger_processor.calculate_file_hash') as mock_calculate_hash, \
-             patch('src.processing.blob_trigger_processor.clean_text') as mock_clean_text, \
-             patch('src.processing.blob_trigger_processor.chunk_text') as mock_chunk_text, \
-             patch('src.processing.blob_trigger_processor.extract_text_from_file') as mock_extract_text, \
-             patch('src.processing.blob_trigger_processor.store_document_embeddings') as mock_store_embeddings, \
-             patch('src.processing.blob_trigger_processor.update_blob_metadata') as mock_update_metadata:
+        with patch('processing.blob_trigger_processor.blob_storage_service') as mock_blob, \
+             patch('processing.blob_trigger_processor.openai_service') as mock_openai, \
+             patch('processing.blob_trigger_processor.redis_service') as mock_redis, \
+             patch('processing.blob_trigger_processor.vision_service') as mock_vision, \
+             patch('processing.blob_trigger_processor.generate_document_id') as mock_generate_id, \
+             patch('processing.blob_trigger_processor.calculate_file_hash') as mock_calculate_hash, \
+             patch('processing.blob_trigger_processor.clean_text') as mock_clean_text, \
+             patch('processing.blob_trigger_processor.chunk_text') as mock_chunk_text, \
+             patch('processing.blob_trigger_processor.extract_text_from_file') as mock_extract_text, \
+             patch('processing.blob_trigger_processor.store_document_embeddings') as mock_store_embeddings, \
+             patch('processing.blob_trigger_processor.update_blob_metadata') as mock_update_metadata:
             
             # Configurar servicios mock
             mock_blob.get_blob_metadata.return_value = {
@@ -519,15 +519,15 @@ class TestBlobTriggerProcessor:
             mock_services['extract_text'].assert_called_once()
             mock_services['store_embeddings'].assert_called_once()
 
-    @patch('src.processing.blob_trigger_processor.update_blob_metadata')
-    @patch('src.processing.blob_trigger_processor.store_document_embeddings')
-    @patch('src.processing.blob_trigger_processor.openai_service')
-    @patch('src.processing.blob_trigger_processor.clean_text')
-    @patch('src.processing.blob_trigger_processor.chunk_text')
-    @patch('src.processing.blob_trigger_processor.extract_text_from_file')
-    @patch('src.processing.blob_trigger_processor.generate_document_id')
-    @patch('src.processing.blob_trigger_processor.calculate_file_hash')
-    @patch('src.processing.blob_trigger_processor.blob_storage_service')
+    @patch('processing.blob_trigger_processor.update_blob_metadata')
+    @patch('processing.blob_trigger_processor.store_document_embeddings')
+    @patch('processing.blob_trigger_processor.openai_service')
+    @patch('processing.blob_trigger_processor.clean_text')
+    @patch('processing.blob_trigger_processor.chunk_text')
+    @patch('processing.blob_trigger_processor.extract_text_from_file')
+    @patch('processing.blob_trigger_processor.generate_document_id')
+    @patch('processing.blob_trigger_processor.calculate_file_hash')
+    @patch('processing.blob_trigger_processor.blob_storage_service')
     @patch('tempfile.NamedTemporaryFile')
     def test_blob_trigger_processor_success(
         self,
@@ -572,7 +572,7 @@ class TestBlobTriggerProcessor:
         mock_store_embeddings.assert_called_once()
         mock_update_metadata.assert_called_once()
 
-    @patch('src.processing.blob_trigger_processor.blob_storage_service')
+    @patch('processing.blob_trigger_processor.blob_storage_service')
     @patch('tempfile.NamedTemporaryFile')
     def test_blob_trigger_processor_blob_service_failure(
         self,
@@ -591,10 +591,10 @@ class TestBlobTriggerProcessor:
         with pytest.raises(Exception):
             main(mock_blob_stream)
 
-    @patch('src.processing.blob_trigger_processor.openai_service')
-    @patch('src.processing.blob_trigger_processor.extract_text_from_file')
-    @patch('src.processing.blob_trigger_processor.calculate_file_hash')
-    @patch('src.processing.blob_trigger_processor.blob_storage_service')
+    @patch('processing.blob_trigger_processor.openai_service')
+    @patch('processing.blob_trigger_processor.extract_text_from_file')
+    @patch('processing.blob_trigger_processor.calculate_file_hash')
+    @patch('processing.blob_trigger_processor.blob_storage_service')
     @patch('tempfile.NamedTemporaryFile')
     def test_blob_trigger_processor_no_text_extracted(
         self,
@@ -622,10 +622,10 @@ class TestBlobTriggerProcessor:
         mock_extract_text.assert_called_once()
         mock_openai_service.generate_embeddings.assert_not_called()
 
-    @patch('src.processing.blob_trigger_processor.openai_service')
-    @patch('src.processing.blob_trigger_processor.extract_text_from_file')
-    @patch('src.processing.blob_trigger_processor.calculate_file_hash')
-    @patch('src.processing.blob_trigger_processor.blob_storage_service')
+    @patch('processing.blob_trigger_processor.openai_service')
+    @patch('processing.blob_trigger_processor.extract_text_from_file')
+    @patch('processing.blob_trigger_processor.calculate_file_hash')
+    @patch('processing.blob_trigger_processor.blob_storage_service')
     @patch('tempfile.NamedTemporaryFile')
     def test_blob_trigger_processor_embedding_generation_failure(
         self,
@@ -654,7 +654,7 @@ class TestBlobTriggerProcessor:
         mock_extract_text.assert_called_once()
         mock_openai_service.generate_embeddings.assert_called_once()
 
-    @patch('src.processing.blob_trigger_processor.redis_service')
+    @patch('processing.blob_trigger_processor.redis_service')
     def test_store_document_embeddings_success(
         self,
         mock_redis_service,
@@ -668,7 +668,7 @@ class TestBlobTriggerProcessor:
         # Verify Redis service calls
         assert mock_redis_service.store_embedding.call_count == 1
 
-    @patch('src.processing.blob_trigger_processor.redis_service')
+    @patch('processing.blob_trigger_processor.redis_service')
     def test_store_document_embeddings_failure(
         self,
         mock_redis_service,
@@ -701,7 +701,7 @@ class TestBlobTriggerProcessor:
 class TestTextExtraction:
     """Test cases for text extraction functions."""
 
-    @patch('src.processing.blob_trigger_processor.vision_service')
+    @patch('processing.blob_trigger_processor.vision_service')
     def test_extract_text_from_file_image(
         self,
         mock_vision_service
@@ -787,7 +787,7 @@ class TestTextExtraction:
         
         assert result == ""
 
-    @patch('src.processing.blob_trigger_processor.vision_service')
+    @patch('processing.blob_trigger_processor.vision_service')
     def test_extract_text_from_file_vision_service_failure(
         self,
         mock_vision_service

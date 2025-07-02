@@ -15,7 +15,7 @@ from azure.cognitiveservices.vision.computervision import ComputerVisionClient
 from azure.cognitiveservices.vision.computervision.models import OperationStatusCodes
 from msrest.authentication import CognitiveServicesCredentials
 from msrest.exceptions import ClientRequestError, HttpOperationError
-from src.config.settings import settings
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 

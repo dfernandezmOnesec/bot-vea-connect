@@ -9,16 +9,16 @@ from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 from typing import Dict, Any, List
 
-from src.whatsapp_bot.whatsapp_bot import main as whatsapp_main, WhatsAppBot
-from src.processing.batch_start_processing import main as batch_main
-from src.processing.blob_trigger_processor import main as blob_main
-from src.processing.batch_push_results import main as push_main
-from src.shared_code.whatsapp_service import WhatsAppService
-from src.shared_code.openai_service import OpenAIService
-from src.shared_code.redis_service import RedisService
-from src.shared_code.user_service import UserService
-from src.shared_code.vision_service import VisionService
-from src.shared_code.azure_blob_storage import AzureBlobStorageService
+from whatsapp_bot.whatsapp_bot import main as whatsapp_main, WhatsAppBot
+from processing.batch_start_processing import main as batch_main
+from processing.blob_trigger_processor import main as blob_main
+from processing.batch_push_results import main as push_main
+from shared_code.whatsapp_service import WhatsAppService
+from shared_code.openai_service import OpenAIService
+from shared_code.redis_service import RedisService
+from shared_code.user_service import UserService
+from shared_code.vision_service import VisionService
+from shared_code.azure_blob_storage import AzureBlobStorageService
 
 
 class TestFullSystemIntegration:
@@ -45,17 +45,17 @@ class TestFullSystemIntegration:
     @pytest.fixture
     def real_full_system_services(self, mock_full_environment):
         """Instancias reales de todos los servicios del sistema"""
-        with patch('src.whatsapp_bot.whatsapp_bot.requests') as mock_whatsapp_requests, \
-             patch('src.whatsapp_bot.whatsapp_bot.openai') as mock_openai, \
-             patch('src.whatsapp_bot.whatsapp_bot.redis') as mock_redis, \
-             patch('src.whatsapp_bot.whatsapp_bot.requests') as mock_vision_requests, \
-             patch('src.processing.batch_start_processing.AzureBlobStorageService') as mock_blob, \
-             patch('src.processing.batch_start_processing.OpenAIService') as mock_processing_openai, \
-             patch('src.processing.batch_start_processing.RedisService') as mock_processing_redis, \
-             patch('src.processing.blob_trigger_processor.AzureBlobStorageService') as mock_blob_trigger, \
-             patch('src.processing.blob_trigger_processor.OpenAIService') as mock_blob_openai, \
-             patch('src.processing.blob_trigger_processor.RedisService') as mock_blob_redis, \
-             patch('src.processing.batch_push_results.AzureBlobStorageService') as mock_push_blob:
+        with patch('whatsapp_bot.whatsapp_bot.requests') as mock_whatsapp_requests, \
+             patch('whatsapp_bot.whatsapp_bot.openai') as mock_openai, \
+             patch('whatsapp_bot.whatsapp_bot.redis') as mock_redis, \
+             patch('whatsapp_bot.whatsapp_bot.requests') as mock_vision_requests, \
+             patch('processing.batch_start_processing.AzureBlobStorageService') as mock_blob, \
+             patch('processing.batch_start_processing.OpenAIService') as mock_processing_openai, \
+             patch('processing.batch_start_processing.RedisService') as mock_processing_redis, \
+             patch('processing.blob_trigger_processor.AzureBlobStorageService') as mock_blob_trigger, \
+             patch('processing.blob_trigger_processor.OpenAIService') as mock_blob_openai, \
+             patch('processing.blob_trigger_processor.RedisService') as mock_blob_redis, \
+             patch('processing.batch_push_results.AzureBlobStorageService') as mock_push_blob:
             
             # Configurar mocks de WhatsApp
             mock_whatsapp_requests.post.return_value = Mock(
@@ -715,12 +715,12 @@ class TestFullSystemIntegration:
     @pytest.fixture
     def mock_whatsapp_services(self):
         """Mock de servicios de WhatsApp bot"""
-        with patch('src.whatsapp_bot.whatsapp_bot.WhatsAppService') as mock_whatsapp, \
-             patch('src.whatsapp_bot.whatsapp_bot.OpenAIService') as mock_openai, \
-             patch('src.whatsapp_bot.whatsapp_bot.RedisService') as mock_redis, \
-             patch('src.whatsapp_bot.whatsapp_bot.UserService') as mock_user, \
-             patch('src.whatsapp_bot.whatsapp_bot.VisionService') as mock_vision, \
-             patch('src.whatsapp_bot.whatsapp_bot.AzureBlobStorageService') as mock_blob:
+        with patch('whatsapp_bot.whatsapp_bot.WhatsAppService') as mock_whatsapp, \
+             patch('whatsapp_bot.whatsapp_bot.OpenAIService') as mock_openai, \
+             patch('whatsapp_bot.whatsapp_bot.RedisService') as mock_redis, \
+             patch('whatsapp_bot.whatsapp_bot.UserService') as mock_user, \
+             patch('whatsapp_bot.whatsapp_bot.VisionService') as mock_vision, \
+             patch('whatsapp_bot.whatsapp_bot.AzureBlobStorageService') as mock_blob:
             
             yield {
                 'whatsapp': mock_whatsapp.return_value,
@@ -734,11 +734,11 @@ class TestFullSystemIntegration:
     @pytest.fixture
     def mock_batch_start_services(self):
         """Mock de servicios de batch start processing"""
-        with patch('src.processing.batch_start_processing.AzureBlobStorageService') as mock_blob, \
-             patch('src.processing.batch_start_processing.OpenAIService') as mock_openai, \
-             patch('src.processing.batch_start_processing.RedisService') as mock_redis, \
-             patch('src.processing.batch_start_processing.UserService') as mock_user, \
-             patch('src.processing.batch_start_processing.VisionService') as mock_vision:
+        with patch('processing.batch_start_processing.AzureBlobStorageService') as mock_blob, \
+             patch('processing.batch_start_processing.OpenAIService') as mock_openai, \
+             patch('processing.batch_start_processing.RedisService') as mock_redis, \
+             patch('processing.batch_start_processing.UserService') as mock_user, \
+             patch('processing.batch_start_processing.VisionService') as mock_vision:
             
             yield {
                 'blob': mock_blob.return_value,
@@ -751,11 +751,11 @@ class TestFullSystemIntegration:
     @pytest.fixture
     def mock_blob_trigger_services(self):
         """Mock de servicios de blob trigger processor"""
-        with patch('src.processing.blob_trigger_processor.AzureBlobStorageService') as mock_blob, \
-             patch('src.processing.blob_trigger_processor.OpenAIService') as mock_openai, \
-             patch('src.processing.blob_trigger_processor.RedisService') as mock_redis, \
-             patch('src.processing.blob_trigger_processor.UserService') as mock_user, \
-             patch('src.processing.blob_trigger_processor.VisionService') as mock_vision:
+        with patch('processing.blob_trigger_processor.AzureBlobStorageService') as mock_blob, \
+             patch('processing.blob_trigger_processor.OpenAIService') as mock_openai, \
+             patch('processing.blob_trigger_processor.RedisService') as mock_redis, \
+             patch('processing.blob_trigger_processor.UserService') as mock_user, \
+             patch('processing.blob_trigger_processor.VisionService') as mock_vision:
             
             yield {
                 'blob': mock_blob.return_value,
@@ -768,11 +768,11 @@ class TestFullSystemIntegration:
     @pytest.fixture
     def mock_batch_push_services(self):
         """Mock de servicios de batch push results"""
-        with patch('src.processing.batch_push_results.AzureBlobStorageService') as mock_blob, \
-             patch('src.processing.batch_push_results.OpenAIService') as mock_openai, \
-             patch('src.processing.batch_push_results.RedisService') as mock_redis, \
-             patch('src.processing.batch_push_results.UserService') as mock_user, \
-             patch('src.processing.batch_push_results.VisionService') as mock_vision:
+        with patch('processing.batch_push_results.AzureBlobStorageService') as mock_blob, \
+             patch('processing.batch_push_results.OpenAIService') as mock_openai, \
+             patch('processing.batch_push_results.RedisService') as mock_redis, \
+             patch('processing.batch_push_results.UserService') as mock_user, \
+             patch('processing.batch_push_results.VisionService') as mock_vision:
             
             yield {
                 'blob': mock_blob.return_value,

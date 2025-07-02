@@ -11,12 +11,12 @@ from datetime import datetime
 import traceback
 
 # Importar módulos compartidos
-from src.shared_code.whatsapp_service import WhatsAppService
-from src.shared_code.openai_service import OpenAIService
-from src.shared_code.redis_service import RedisService
-from src.shared_code.vision_service import VisionService
-from src.shared_code.user_service import UserService, User, UserSession
-from src.shared_code.utils import (
+from shared_code.whatsapp_service import WhatsAppService
+from shared_code.openai_service import OpenAIService
+from shared_code.redis_service import RedisService
+from shared_code.vision_service import VisionService
+from shared_code.user_service import UserService, User, UserSession
+from shared_code.utils import (
     setup_logging,
     parse_whatsapp_message,
     extract_media_info,
@@ -27,7 +27,7 @@ from src.shared_code.utils import (
     generate_session_id,
     rate_limit_check
 )
-from src.config.settings import get_settings
+from config.settings import get_settings
 
 
 # Configurar logging

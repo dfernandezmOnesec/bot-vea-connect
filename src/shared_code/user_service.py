@@ -10,8 +10,8 @@ import json
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 from redis.exceptions import RedisError, ConnectionError
-from src.shared_code.redis_service import redis_service
-from src.config.settings import settings
+from shared_code.redis_service import redis_service
+from config.settings import settings
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)

@@ -12,7 +12,7 @@ from typing import Optional, List, Dict, Any, BinaryIO
 from datetime import datetime
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 from azure.core.exceptions import AzureError, ResourceNotFoundError, ClientAuthenticationError
-from src.config.settings import settings
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 

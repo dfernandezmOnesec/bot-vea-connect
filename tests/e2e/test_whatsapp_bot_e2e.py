@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 from typing import Dict, Any
 
-from src.whatsapp_bot.whatsapp_bot import main
-from src.shared_code.user_service import User, UserSession
+from whatsapp_bot.whatsapp_bot import main
+from shared_code.user_service import User, UserSession
 
 
 class TestWhatsAppBotE2E:

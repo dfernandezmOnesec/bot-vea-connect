@@ -8,7 +8,7 @@ import pytest
 import json
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
-from src.whatsapp_bot.whatsapp_bot import main, WhatsAppBot
+from whatsapp_bot.whatsapp_bot import main, WhatsAppBot
 
 class TestWhatsAppBot:
     """Test cases for WhatsAppBot function."""

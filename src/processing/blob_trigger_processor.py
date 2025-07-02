@@ -12,12 +12,12 @@ import tempfile
 import os
 from typing import Dict, Any, Optional
 from pathlib import Path
-from src.shared_code.azure_blob_storage import blob_storage_service
-from src.shared_code.openai_service import openai_service
-from src.shared_code.redis_service import redis_service
-from src.shared_code.vision_service import vision_service
-from src.shared_code.utils import generate_document_id, calculate_file_hash, clean_text, chunk_text
-from src.config.settings import settings
+from shared_code.azure_blob_storage import blob_storage_service
+from shared_code.openai_service import openai_service
+from shared_code.redis_service import redis_service
+from shared_code.vision_service import vision_service
+from shared_code.utils import generate_document_id, calculate_file_hash, clean_text, chunk_text
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 

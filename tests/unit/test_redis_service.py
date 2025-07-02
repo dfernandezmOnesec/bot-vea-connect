@@ -8,7 +8,7 @@ with mocked Redis client and full coverage of all methods.
 import pytest
 from unittest.mock import patch, Mock, MagicMock
 from redis.exceptions import RedisError, ConnectionError, TimeoutError
-from src.shared_code.redis_service import RedisService
+from shared_code.redis_service import RedisService
 
 class TestRedisService:
     """Test cases for RedisService class."""
@@ -30,9 +30,15 @@ class TestRedisService:
 
     @pytest.fixture
     def redis_service(self, mock_settings_env, mock_redis):
+        # Mock the Redis client creation and validation
+        mock_client = Mock()
+        mock_client.ping.return_value = True
+        mock_client.set.return_value = True
+        mock_client.get.return_value = b"test_value"
+        mock_redis.return_value = mock_client
+        
         with patch('src.shared_code.redis_service.RedisService._validate_connection'):
             service = RedisService()
-            service.redis_client = Mock()
             return service
 
     def test_store_embedding_success(self, redis_service):

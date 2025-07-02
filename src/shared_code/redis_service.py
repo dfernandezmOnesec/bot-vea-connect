@@ -15,7 +15,8 @@ import redis
 from redis.commands.search.field import TextField, VectorField
 # from redis.commands.search.indexDefinition import IndexDefinition, IndexType  # Comentado por compatibilidad
 from redis.exceptions import RedisError, ConnectionError, TimeoutError
-from src.config.settings import settings
+from config.settings import settings
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -192,19 +193,18 @@ class RedisService:
                 TextField("upload_date", weight=0.2),
                 VectorField(
                     "embedding",
-                    "FLOAT32",
-                    1536,  # OpenAI ada-002 embedding dimension
-                    "FLAT"
+                    "FLAT",
+                    {"TYPE": "FLOAT32", "DIM": 1536}  # OpenAI ada-002 embedding dimension
                 )
             )
             
             # Create the index
             self.redis_client.ft(index_name).create_index(
                 schema,
-                definition=IndexDefinition(
-                    prefix=["doc:"],
-                    index_type=IndexType.HASH
-                )
+                definition={
+                    "prefix": ["doc:"],
+                    "index_type": "HASH"
+                }
             )
             
             logger.info(f"Search index created successfully: {index_name}")
@@ -536,5 +536,6 @@ class RedisService:
             logger.error(f"Redis health check failed: {e}")
             raise
 
-# Global instance for easy access
-redis_service = RedisService() 
+# Instancia global protegida para evitar inicialización en tests
+if not os.environ.get("PYTEST_CURRENT_TEST"):
+    redis_service = RedisService() 

@@ -689,22 +689,32 @@ def validate_environment_variables(required_vars: Optional[List[str]] = None) ->
         required_vars: Lista de variables requeridas (opcional, usa lista por defecto si no se proporciona)
         
     Returns:
-        Dict con el estado de validación de cada variable
+        True si todas las variables están configuradas, False en caso contrario
     """
-    if required_vars is None:
-        required_vars = [
-            "AZURE_OPENAI_ENDPOINT",
-            "AZURE_OPENAI_API_KEY", 
-            "REDIS_CONNECTION_STRING",
-            "WHATSAPP_TOKEN",
-            "WHATSAPP_PHONE_NUMBER_ID"
-        ]
-    for var in required_vars:
-        value = os.getenv(var)
-        if not value or not value.strip():
-            logger.warning(f"Variable de entorno faltante o vacía: {var}")
-            raise ValueError(f"Missing required environment variable: {var}")
-    return True
+    try:
+        from config.settings import get_settings
+        settings = get_settings()
+        
+        if required_vars is None:
+            required_vars = [
+                "AZURE_OPENAI_ENDPOINT",
+                "AZURE_OPENAI_API_KEY", 
+                "REDIS_CONNECTION_STRING",
+                "WHATSAPP_TOKEN",
+                "WHATSAPP_PHONE_NUMBER_ID"
+            ]
+        
+        for var in required_vars:
+            # Usar getattr para acceder a las variables a través de settings
+            value = getattr(settings, var.lower(), None)
+            if not value or not str(value).strip():
+                logger.warning(f"Variable de entorno faltante o vacía: {var}")
+                raise ValueError(f"Missing required environment variable: {var}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error validando variables de entorno: {str(e)}")
+        raise
 
 def retry_with_backoff(func, max_retries: int = 3, base_delay: float = 1.0, max_delay: float = 60.0):
     """

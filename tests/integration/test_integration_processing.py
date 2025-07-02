@@ -9,14 +9,14 @@ from unittest.mock import Mock, patch, MagicMock, mock_open
 from datetime import datetime
 from typing import Dict, Any, List
 
-from src.processing.batch_start_processing import main as batch_start_main
-from src.processing.blob_trigger_processor import main as blob_trigger_main
-from src.processing.batch_push_results import main as batch_push_main
-from src.shared_code.azure_blob_storage import AzureBlobStorageService
-from src.shared_code.openai_service import OpenAIService
-from src.shared_code.redis_service import RedisService
-from src.shared_code.vision_service import VisionService
-from src.shared_code.user_service import UserService
+from processing.batch_start_processing import main as batch_start_main
+from processing.blob_trigger_processor import main as blob_trigger_main
+from processing.batch_push_results import main as batch_push_main
+from shared_code.azure_blob_storage import AzureBlobStorageService
+from shared_code.openai_service import OpenAIService
+from shared_code.redis_service import RedisService
+from shared_code.vision_service import VisionService
+from shared_code.user_service import UserService
 
 
 class TestProcessingIntegration:
@@ -25,21 +25,21 @@ class TestProcessingIntegration:
     @pytest.fixture
     def mock_services(self):
         """Mock de todos los servicios"""
-        with patch('src.processing.batch_start_processing.AzureBlobStorageService') as mock_blob_start, \
-             patch('src.processing.batch_start_processing.OpenAIService') as mock_openai_start, \
-             patch('src.processing.batch_start_processing.RedisService') as mock_redis_start, \
-             patch('src.processing.batch_start_processing.UserService') as mock_user_start, \
-             patch('src.processing.batch_start_processing.VisionService') as mock_vision_start, \
-             patch('src.processing.blob_trigger_processor.AzureBlobStorageService') as mock_blob_trigger, \
-             patch('src.processing.blob_trigger_processor.OpenAIService') as mock_openai_trigger, \
-             patch('src.processing.blob_trigger_processor.RedisService') as mock_redis_trigger, \
-             patch('src.processing.blob_trigger_processor.UserService') as mock_user_trigger, \
-             patch('src.processing.blob_trigger_processor.VisionService') as mock_vision_trigger, \
-             patch('src.processing.batch_push_results.AzureBlobStorageService') as mock_blob_push, \
-             patch('src.processing.batch_push_results.OpenAIService') as mock_openai_push, \
-             patch('src.processing.batch_push_results.RedisService') as mock_redis_push, \
-             patch('src.processing.batch_push_results.UserService') as mock_user_push, \
-             patch('src.processing.batch_push_results.VisionService') as mock_vision_push:
+        with patch('processing.batch_start_processing.AzureBlobStorageService') as mock_blob_start, \
+             patch('processing.batch_start_processing.OpenAIService') as mock_openai_start, \
+             patch('processing.batch_start_processing.RedisService') as mock_redis_start, \
+             patch('processing.batch_start_processing.UserService') as mock_user_start, \
+             patch('processing.batch_start_processing.VisionService') as mock_vision_start, \
+             patch('processing.blob_trigger_processor.AzureBlobStorageService') as mock_blob_trigger, \
+             patch('processing.blob_trigger_processor.OpenAIService') as mock_openai_trigger, \
+             patch('processing.blob_trigger_processor.RedisService') as mock_redis_trigger, \
+             patch('processing.blob_trigger_processor.UserService') as mock_user_trigger, \
+             patch('processing.blob_trigger_processor.VisionService') as mock_vision_trigger, \
+             patch('processing.batch_push_results.AzureBlobStorageService') as mock_blob_push, \
+             patch('processing.batch_push_results.OpenAIService') as mock_openai_push, \
+             patch('processing.batch_push_results.RedisService') as mock_redis_push, \
+             patch('processing.batch_push_results.UserService') as mock_user_push, \
+             patch('processing.batch_push_results.VisionService') as mock_vision_push:
             
             # Configurar mocks para batch_start_processing
             mock_blob_start_instance = MagicMock()
@@ -279,10 +279,10 @@ class TestBatchProcessingIntegration:
     @pytest.fixture
     def real_processing_services(self, mock_environment):
         """Instancias reales de servicios de procesamiento con mocks de APIs externas"""
-        with patch('src.processing.batch_start_processing.AzureBlobStorageService') as mock_blob, \
-             patch('src.processing.batch_start_processing.OpenAIService') as mock_openai, \
-             patch('src.processing.batch_start_processing.RedisService') as mock_redis, \
-             patch('src.processing.batch_start_processing.get_settings') as mock_settings:
+        with patch('processing.batch_start_processing.AzureBlobStorageService') as mock_blob, \
+             patch('processing.batch_start_processing.OpenAIService') as mock_openai, \
+             patch('processing.batch_start_processing.RedisService') as mock_redis, \
+             patch('processing.batch_start_processing.get_settings') as mock_settings:
             
             # Configurar settings mock
             mock_settings.return_value = Mock(
@@ -502,10 +502,10 @@ class TestBlobTriggerProcessingIntegration:
     @pytest.fixture
     def real_blob_services(self, mock_environment):
         """Instancias reales de servicios para blob triggers"""
-        with patch('src.processing.blob_trigger_processor.AzureBlobStorageService') as mock_blob, \
-             patch('src.processing.blob_trigger_processor.OpenAIService') as mock_openai, \
-             patch('src.processing.blob_trigger_processor.RedisService') as mock_redis, \
-             patch('src.processing.blob_trigger_processor.get_settings') as mock_settings:
+        with patch('processing.blob_trigger_processor.AzureBlobStorageService') as mock_blob, \
+             patch('processing.blob_trigger_processor.OpenAIService') as mock_openai, \
+             patch('processing.blob_trigger_processor.RedisService') as mock_redis, \
+             patch('processing.blob_trigger_processor.get_settings') as mock_settings:
             
             # Configurar settings mock
             mock_settings.return_value = Mock(
@@ -798,9 +798,9 @@ class TestBatchPushResultsIntegration:
     @pytest.fixture
     def real_push_services(self, mock_environment):
         """Instancias reales de servicios para push de resultados"""
-        with patch('src.processing.batch_push_results.AzureBlobStorageService') as mock_blob, \
-             patch('src.processing.batch_push_results.RedisService') as mock_redis, \
-             patch('src.processing.batch_push_results.get_settings') as mock_settings:
+        with patch('processing.batch_push_results.AzureBlobStorageService') as mock_blob, \
+             patch('processing.batch_push_results.RedisService') as mock_redis, \
+             patch('processing.batch_push_results.get_settings') as mock_settings:
             
             # Configurar settings mock
             mock_settings.return_value = Mock(

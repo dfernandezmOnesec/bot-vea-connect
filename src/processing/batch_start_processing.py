@@ -10,8 +10,8 @@ import logging
 import json
 from typing import Dict, Any, List
 from azure.storage.queue import QueueClient
-from src.shared_code.azure_blob_storage import blob_storage_service
-from src.config.settings import settings
+from shared_code.azure_blob_storage import blob_storage_service
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 

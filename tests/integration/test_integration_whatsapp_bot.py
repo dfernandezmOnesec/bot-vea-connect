@@ -10,13 +10,14 @@ from datetime import datetime
 from typing import Dict, Any, List
 import pickle
 
-from src.whatsapp_bot.whatsapp_bot import main, WhatsAppBot
-from src.shared_code.user_service import User, UserSession
-from src.shared_code.whatsapp_service import WhatsAppService
-from src.shared_code.openai_service import OpenAIService
-from src.shared_code.redis_service import RedisService
-from src.shared_code.vision_service import VisionService
-from src.shared_code.azure_blob_storage import AzureBlobStorageService
+from whatsapp_bot.whatsapp_bot import main, WhatsAppBot
+from shared_code.user_service import User, UserSession
+from shared_code.whatsapp_service import WhatsAppService
+from shared_code.openai_service import OpenAIService
+from shared_code.redis_service import RedisService
+from shared_code.vision_service import VisionService
+from shared_code.azure_blob_storage import AzureBlobStorageService
+from whatsapp_bot import whatsapp_bot
 
 
 class TestWhatsAppBotIntegration:
@@ -25,11 +26,11 @@ class TestWhatsAppBotIntegration:
     @pytest.fixture
     def mock_services(self):
         """Mock de todos los servicios"""
-        with patch('src.whatsapp_bot.whatsapp_bot.WhatsAppService') as mock_whatsapp, \
-             patch('src.whatsapp_bot.whatsapp_bot.OpenAIService') as mock_openai, \
-             patch('src.whatsapp_bot.whatsapp_bot.RedisService') as mock_redis, \
-             patch('src.whatsapp_bot.whatsapp_bot.UserService') as mock_user, \
-             patch('src.whatsapp_bot.whatsapp_bot.VisionService') as mock_vision:
+        with patch('whatsapp_bot.whatsapp_bot.WhatsAppService') as mock_whatsapp, \
+             patch('whatsapp_bot.whatsapp_bot.OpenAIService') as mock_openai, \
+             patch('whatsapp_bot.whatsapp_bot.RedisService') as mock_redis, \
+             patch('whatsapp_bot.whatsapp_bot.UserService') as mock_user, \
+             patch('whatsapp_bot.whatsapp_bot.VisionService') as mock_vision:
             
             # Configurar mocks
             mock_whatsapp_instance = MagicMock()
@@ -65,7 +66,6 @@ class TestWhatsAppBotIntegration:
             body=b''
         )
         # Mockear el token esperado
-        from src.whatsapp_bot import whatsapp_bot
         whatsapp_bot.bot.settings.whatsapp_verify_token = 'test_token'
 
         # Act
@@ -222,9 +222,9 @@ class TestWhatsAppBotIntegration:
     @pytest.fixture
     def real_services(self, mock_environment):
         """Instancias reales de servicios con mocks de APIs externas"""
-        with patch('src.shared_code.whatsapp_service.requests') as mock_requests, \
-             patch('src.shared_code.openai_service.openai') as mock_openai, \
-             patch('src.shared_code.redis_service.redis') as mock_redis:
+        with patch('shared_code.whatsapp_service.requests') as mock_requests, \
+             patch('shared_code.openai_service.openai') as mock_openai, \
+             patch('shared_code.redis_service.redis') as mock_redis:
 
             # Configurar mock de requests para capturar el payload real enviado
             def mock_post(url, headers=None, json=None, timeout=None, **kwargs):
@@ -1099,8 +1099,8 @@ class TestWhatsAppBotServiceIntegration:
         Test de integración: Servicio de WhatsApp
         Verifica línea por línea la integración con WhatsApp API
         """
-        with patch('src.shared_code.whatsapp_service.requests') as mock_requests, \
-             patch('src.shared_code.whatsapp_service.settings') as mock_settings:
+        with patch('shared_code.whatsapp_service.requests') as mock_requests, \
+             patch('shared_code.whatsapp_service.settings') as mock_settings:
             
             # Configurar settings mock
             mock_settings.access_token = "test-token"
@@ -1140,8 +1140,8 @@ class TestWhatsAppBotServiceIntegration:
         Test de integración: Servicio de OpenAI
         Verifica línea por línea la integración con OpenAI
         """
-        with patch('src.shared_code.openai_service.openai') as mock_openai, \
-             patch('src.shared_code.openai_service.settings') as mock_settings:
+        with patch('shared_code.openai_service.openai') as mock_openai, \
+             patch('shared_code.openai_service.settings') as mock_settings:
 
             # Configurar settings mock
             mock_settings.azure_openai_endpoint = "https://test.openai.azure.com/"
@@ -1173,8 +1173,8 @@ class TestWhatsAppBotServiceIntegration:
         Test de integración: Servicio de Redis
         Verifica almacenamiento y recuperación de embeddings y documentos
         """
-        with patch('src.shared_code.redis_service.redis') as mock_redis, \
-             patch('src.shared_code.redis_service.settings') as mock_settings:
+        with patch('shared_code.redis_service.redis') as mock_redis, \
+             patch('shared_code.redis_service.settings') as mock_settings:
             
             # Configurar settings mock
             mock_settings.redis_host = "localhost"
@@ -1224,8 +1224,8 @@ class TestWhatsAppBotServiceIntegration:
         Test de integración: Servicio de Computer Vision
         Verifica línea por línea la integración con Vision API
         """
-        with patch('src.shared_code.vision_service.ComputerVisionClient') as mock_vision_client, \
-             patch('src.shared_code.vision_service.settings') as mock_settings:
+        with patch('shared_code.vision_service.ComputerVisionClient') as mock_vision_client, \
+             patch('shared_code.vision_service.settings') as mock_settings:
             
             # Configurar settings mock
             mock_settings.azure_computer_vision_endpoint = "https://test.vision.azure.com/"

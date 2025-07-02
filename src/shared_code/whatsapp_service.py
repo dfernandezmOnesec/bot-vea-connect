@@ -11,7 +11,7 @@ import requests
 from typing import Dict, Any, Optional, List, Union
 from datetime import datetime
 from requests.exceptions import RequestException, HTTPError, Timeout, ConnectionError
-from src.config.settings import settings
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 

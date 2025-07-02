@@ -8,7 +8,7 @@ with mocked ComputerVisionClient and full coverage of all methods.
 import pytest
 from unittest.mock import patch, Mock, MagicMock
 from msrest.exceptions import ClientRequestError, HttpOperationError
-from src.shared_code.vision_service import VisionService
+from shared_code.vision_service import VisionService
 
 class TestVisionService:
     """Test cases for VisionService class."""
@@ -27,9 +27,14 @@ class TestVisionService:
 
     @pytest.fixture
     def vision_service(self, mock_settings_env, mock_cv_client):
-        with patch('src.shared_code.vision_service.VisionService._validate_connection'):
-            service = VisionService()
+        # Mock completamente la inicialización para evitar llamadas reales a Azure
+        with patch('src.shared_code.vision_service.VisionService._validate_connection'), \
+             patch('src.shared_code.vision_service.VisionService.__init__') as mock_init:
+            service = VisionService.__new__(VisionService)  # Crear instancia sin __init__
             service.client = Mock()
+            # Configurar atributos necesarios
+            service.endpoint = "https://test.cognitiveservices.azure.com/"
+            service.key = "test-key"
             return service
 
     def test_extract_text_from_image_url_success(self, vision_service):
@@ -143,6 +148,10 @@ class TestVisionService:
         mock_img.width = 100
         mock_img.height = 100
         mock_img.tell.return_value = 1234
+        # Configurar el mock para que funcione como context manager
+        mock_img.__enter__ = Mock(return_value=mock_img)
+        mock_img.__exit__ = Mock(return_value=None)
+        
         with patch('PIL.Image.open', return_value=mock_img):
             result = vision_service.get_image_metadata("test.jpg")
             assert result["format"] == "JPEG"

@@ -13,7 +13,7 @@ from datetime import datetime
 import openai
 from openai import AzureOpenAI
 from openai.types.chat import ChatCompletion
-from src.config.settings import settings
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 

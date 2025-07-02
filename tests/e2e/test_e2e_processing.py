@@ -9,9 +9,9 @@ import json
 import logging
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
-from src.processing.batch_start_processing import main as batch_start_main
-from src.processing.batch_push_results import main as batch_push_main
-from src.whatsapp_bot.whatsapp_bot import main as whatsapp_main
+from processing.batch_start_processing import main as batch_start_main
+from processing.batch_push_results import main as batch_push_main
+from whatsapp_bot.whatsapp_bot import main as whatsapp_main
 
 logger = logging.getLogger(__name__)
 
