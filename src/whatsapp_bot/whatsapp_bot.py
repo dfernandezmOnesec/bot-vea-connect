@@ -51,7 +51,7 @@ class WhatsAppBot:
             self.whatsapp_service = WhatsAppService()
             self.openai_service = OpenAIService()  # Descomentado para integración
             self.redis_service = RedisService()
-            # self.vision_service = VisionService()  # Comentado temporalmente por validación
+            # self.vision_service = VisionService()  # Comentado temporalmente para tests de integración
             self.user_service = UserService()
             
             # Contexto del sistema para OpenAI
@@ -231,6 +231,11 @@ class WhatsAppBot:
             
             logger.info(f"Procesando mensaje tipo '{message_type}' de {from_number}")
             
+            # Validar que from_number no sea None
+            if not from_number:
+                logger.warning("Número de teléfono no encontrado en el mensaje")
+                return create_error_response("Número de teléfono no encontrado")
+            
             # Validar número de teléfono
             if not validate_phone_number(from_number):
                 logger.warning(f"Número de teléfono inválido: {from_number}")
@@ -321,19 +326,9 @@ class WhatsAppBot:
         """
         try:
             # Buscar sesión activa
-            user_sessions_data = self.user_service.get_user_sessions(phone_number)
+            user_sessions = self.user_service.get_user_sessions(phone_number)
             
-            # Convertir diccionarios a objetos UserSession
-            user_sessions = []
-            for session_data in user_sessions_data:
-                session = UserSession(
-                    session_id=session_data.get("session_id", generate_session_id()),
-                    user_phone=session_data.get("user_phone", phone_number),
-                    context=session_data.get("context", {}),
-                    is_active=session_data.get("is_active", True)
-                )
-                user_sessions.append(session)
-            
+            # user_sessions ya es una lista de objetos UserSession
             active_session = next(
                 (s for s in user_sessions if s.is_active),
                 None
@@ -385,6 +380,8 @@ class WhatsAppBot:
             sanitized_text = sanitize_text(text_content)
             
             # Actualizar contexto de sesión
+            if session.context is None:
+                session.context = {}
             session.context["last_message"] = sanitized_text
             session.context["last_message_time"] = datetime.now().isoformat()
             
@@ -473,28 +470,20 @@ class WhatsAppBot:
             Dict[str, Any]: Respuesta del bot
         """
         try:
-            # Descargar imagen de WhatsApp
-            image_data = self.whatsapp_service.download_media(media_info["media_id"])
-            
-            if not image_data:
-                return self._send_error_message(message["from"])
-            
-            # Analizar imagen con Computer Vision
-            image_analysis = self.vision_service.analyze_image(image_data)
-            
-            if not image_analysis:
-                return self._send_error_message(message["from"])
-            
-            # Generar respuesta basada en el análisis
-            response_text = self._generate_image_response(image_analysis, user)
+            # Por ahora, responder con mensaje de imagen recibida
+            # TODO: Implementar descarga y análisis de imagen cuando esté disponible
+            response_text = (
+                "Gracias por compartir esta imagen. Veo que has enviado una foto. "
+                "Por el momento, te recomiendo enviar tu pregunta por texto para que "
+                "pueda ayudarte mejor. ¿En qué puedo servirte?"
+            )
             
             # Enviar respuesta
             self._send_whatsapp_message(message["from"], response_text)
             
             return format_response(
-                "Imagen procesada correctamente",
-                success=True,
-                data={"image_analyzed": True}
+                "Imagen recibida, respuesta enviada",
+                success=True
             )
             
         except Exception as e:
@@ -772,6 +761,8 @@ class WhatsAppBot:
                     context_parts.append(f"- {info.get('content', '')}")
             
             # Historial de conversación (últimos 3 mensajes)
+            if session.context is None:
+                session.context = {}
             conversation_history = session.context.get("conversation_history", [])
             if conversation_history:
                 context_parts.append("Historial reciente de la conversación:")
@@ -803,6 +794,8 @@ class WhatsAppBot:
         """
         try:
             # Actualizar historial de conversación
+            if session.context is None:
+                session.context = {}
             conversation_history = session.context.get("conversation_history", [])
             conversation_history.extend([user_message, bot_response])
             
@@ -831,14 +824,15 @@ class WhatsAppBot:
             bool: True si se envió correctamente
         """
         try:
-            success = self.whatsapp_service.send_text_message(message, to_number)
+            result = self.whatsapp_service.send_text_message(message, to_number)
             
-            if success:
+            # Verificar si la respuesta indica éxito
+            if result and "messages" in result:
                 logger.info(f"Mensaje enviado a {to_number}")
+                return True
             else:
                 logger.error(f"Error enviando mensaje a {to_number}")
-            
-            return success
+                return False
             
         except Exception as e:
             logger.error(f"Error enviando mensaje WhatsApp: {str(e)}")
@@ -1009,8 +1003,8 @@ class WhatsAppBot:
             )
 
 
-# Instancia global del bot
-bot = WhatsAppBot()
+# Instancia global del bot (lazy initialization para testing)
+bot = None
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -1023,6 +1017,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     Returns:
         func.HttpResponse: Respuesta HTTP
     """
+    global bot
+    if bot is None:
+        bot = WhatsAppBot()
     return bot.process_message(req)
 
 

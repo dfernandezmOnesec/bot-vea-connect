@@ -6,7 +6,7 @@ pytest==7.4.3
 pytest-asyncio==0.21.1
 pytest-mock==3.12.0
 pytest-cov==4.1.0
-pytest-azure==0.1.0
+pytest-azure==0.0.3
 
 # Code quality and formatting
 black==23.11.0
@@ -26,4 +26,16 @@ factory-boy==3.3.0
 
 # Documentation
 sphinx==7.2.6
-sphinx-rtd-theme==1.3.0 
+sphinx-rtd-theme==1.3.0
+
+# Azure y dependencias para testing
+azure-functions
+azure-core
+msrest
+requests
+openai
+redis
+pydantic-settings
+azure-storage-blob
+azure-storage-queue
+azure-cognitiveservices-vision-computervision 

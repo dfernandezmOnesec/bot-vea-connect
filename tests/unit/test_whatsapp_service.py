@@ -111,7 +111,7 @@ class TestWhatsAppService:
 
     def test_verify_webhook_invalid(self, whatsapp_service):
         result = whatsapp_service.verify_webhook("subscribe", "wrong-token", "challenge")
-        assert result is None
+        assert result is None  # El código real retorna None, no lanza excepción
         with pytest.raises(ValueError):
             whatsapp_service.verify_webhook("", "", "")
 
