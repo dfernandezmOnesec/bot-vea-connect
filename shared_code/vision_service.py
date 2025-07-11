@@ -16,30 +16,37 @@ from azure.cognitiveservices.vision.computervision.models import OperationStatus
 from msrest.authentication import CognitiveServicesCredentials
 from msrest.exceptions import ClientRequestError, HttpOperationError
 from config.settings import settings
+from shared_code.interfaces import IVisionService
 
 logger = logging.getLogger(__name__)
 
-class VisionService:
+class VisionService(IVisionService):
     """Service class for Computer Vision operations with production-grade features."""
     
-    def __init__(self):
-        """Initialize the Computer Vision service with connection validation."""
+    def __init__(self, skip_validation=False):
+        """
+        Initialize the Computer Vision service.
+        
+        Args:
+            skip_validation (bool): Skip connection validation (useful for testing)
+        """
         try:
-            self.endpoint = settings.computer_vision_endpoint
-            self.key = settings.computer_vision_key
+            self.endpoint = settings.azure_computer_vision_endpoint
+            self.key = settings.azure_computer_vision_api_key
             
-            # Validate configuration
             if not self.endpoint or not self.key:
                 raise ValueError("Computer Vision endpoint and key are required")
             
+            # Initialize the client
             self.client = ComputerVisionClient(
-                self.endpoint,
-                CognitiveServicesCredentials(self.key)
+                endpoint=self.endpoint,
+                credentials=CognitiveServicesCredentials(self.key)
             )
             
-            # Validate connection
-            self._validate_connection()
-            
+            # Validate connection unless skipped
+            if not skip_validation:
+                self._validate_connection()
+                
             logger.info("Computer Vision service initialized successfully")
             
         except Exception as e:
@@ -503,6 +510,15 @@ class VisionService:
         except Exception as e:
             logger.error(f"Computer Vision service health check failed: {e}")
             raise
+
+    def analyze_image(self, image_url: str) -> dict:
+        """Wrapper para cumplir con la interfaz IVisionService."""
+        # Usa el método ya implementado o el más cercano
+        return self.analyze_image_content(image_url)
+
+    def extract_text_from_image(self, image_url: str) -> str:
+        """Wrapper para cumplir con la interfaz IVisionService."""
+        return self.extract_text_from_image_url(image_url)
 
 # Global instance for easy access
 try:

@@ -8,33 +8,46 @@ and optimized prompts for Christian community support.
 
 import logging
 import json
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional, Union, cast
 from datetime import datetime
 import openai
 from openai import AzureOpenAI
 from openai.types.chat import ChatCompletion
+from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from config.settings import settings
+from shared_code.interfaces import IOpenAIService
 
 logger = logging.getLogger(__name__)
 
-class OpenAIService:
+class OpenAIService(IOpenAIService):
     """Service class for OpenAI operations with production-grade features."""
     
     def __init__(self):
         """Initialize the OpenAI service with connection validation."""
         try:
-            # Configurar cliente OpenAI para Azure
-            openai.api_type = "azure"
-            openai.api_base = settings.azure_openai_endpoint
-            openai.api_key = settings.azure_openai_api_key
-            openai.api_version = settings.azure_openai_chat_api_version
-
+            # Configurar cliente Azure OpenAI
             self.chat_deployment = settings.azure_openai_chat_deployment
             self.embeddings_deployment = settings.openai_embeddings_engine_doc
 
-            # No se necesita cliente especial, se usa openai.ChatCompletion y openai.Embedding
-            self.chat_client = openai
-            self.embeddings_client = openai
+            # Validar configuraciones requeridas
+            if not settings.azure_openai_endpoint:
+                raise ValueError("Azure OpenAI endpoint is required")
+            if not settings.azure_openai_api_key:
+                raise ValueError("Azure OpenAI API key is required")
+            if not settings.azure_openai_chat_api_version:
+                raise ValueError("Azure OpenAI API version is required")
+            if not self.chat_deployment:
+                raise ValueError("Azure OpenAI chat deployment is required")
+            if not self.embeddings_deployment:
+                raise ValueError("Azure OpenAI embeddings deployment is required")
+
+            # Crear cliente Azure OpenAI
+            self.chat_client = AzureOpenAI(
+                azure_endpoint=settings.azure_openai_endpoint,
+                api_key=settings.azure_openai_api_key,
+                api_version=settings.azure_openai_chat_api_version
+            )
+            self.embeddings_client = self.chat_client
 
             # Validate connections
             self._validate_connections()
@@ -53,6 +66,10 @@ class OpenAIService:
             Exception: If connection validation fails
         """
         try:
+            # Ensure deployments are not None
+            if not self.chat_deployment:
+                raise ValueError("Chat deployment is not configured")
+            
             # Test chat completion with a simple request
             test_response = self.chat_client.chat.completions.create(
                 model=self.chat_deployment,
@@ -91,13 +108,17 @@ class OpenAIService:
             Exception: For other unexpected errors
         """
         try:
+            # Ensure chat deployment is configured
+            if not self.chat_deployment:
+                raise ValueError("Chat deployment is not configured")
+            
             # Prepend system prompt if provided
             if system_prompt:
                 messages = [{"role": "system", "content": system_prompt}] + messages
             
             response = self.chat_client.chat.completions.create(
                 model=self.chat_deployment,
-                messages=messages,
+                messages=cast(List[ChatCompletionMessageParam], messages),
                 max_tokens=max_tokens,
                 temperature=temperature
             )
@@ -105,12 +126,15 @@ class OpenAIService:
             response_text = response.choices[0].message.content
             usage = response.usage
             
-            logger.info(
-                f"Chat completion generated successfully. "
-                f"Tokens used: {usage.total_tokens} "
-                f"(prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})"
-            )
-            return response_text
+            if response_text and usage:
+                logger.info(
+                    f"Chat completion generated successfully. "
+                    f"Tokens used: {usage.total_tokens} "
+                    f"(prompt: {usage.prompt_tokens}, completion: {usage.completion_tokens})"
+                )
+                return response_text
+            else:
+                raise ValueError("Invalid response from OpenAI API")
             
         except openai.BadRequestError as e:
             logger.error(f"OpenAI bad request error: {e}")
@@ -149,6 +173,10 @@ class OpenAIService:
                 logger.warning(f"Text truncated from {len(text)} to 8000 characters")
                 text = text[:8000]
             
+            # Ensure embeddings deployment is configured
+            if not self.embeddings_deployment:
+                raise ValueError("Embeddings deployment is not configured")
+            
             response = self.embeddings_client.embeddings.create(
                 model=self.embeddings_deployment,
                 input=text
@@ -179,6 +207,25 @@ class OpenAIService:
             List[float]: Embedding vector
         """
         return self.generate_embeddings(text)
+    
+    def generate_response(
+        self, 
+        messages: List[Dict[str, str]], 
+        max_tokens: int = 1000,
+        temperature: float = 0.7
+    ) -> str:
+        """
+        Generate response using OpenAI (alias for generate_chat_completion for compatibility).
+        
+        Args:
+            messages: List of message dictionaries with 'role' and 'content'
+            max_tokens: Maximum number of tokens to generate
+            temperature: Controls randomness (0.0 = deterministic, 1.0 = creative)
+            
+        Returns:
+            str: Generated response text
+        """
+        return self.generate_chat_completion(messages, max_tokens, temperature)
 
     def generate_batch_embeddings(self, texts: List[str]) -> List[List[float]]:
         """
@@ -211,6 +258,10 @@ class OpenAIService:
             
             if not valid_texts:
                 raise ValueError("No valid texts found in input list")
+            
+            # Ensure embeddings deployment is configured
+            if not self.embeddings_deployment:
+                raise ValueError("Embeddings deployment is not configured")
             
             response = self.embeddings_client.embeddings.create(
                 model=self.embeddings_deployment,
@@ -458,6 +509,38 @@ Responde en español."""
         except Exception as e:
             logger.error(f"Chat history summary generation failed: {e}")
             raise
+    
+    def health_check(self) -> bool:
+        """
+        Perform a health check on the OpenAI service.
+        
+        Returns:
+            bool: True if the service is healthy
+        """
+        try:
+            # Ensure chat deployment is configured
+            if not self.chat_deployment:
+                logger.warning("OpenAI health check failed - chat deployment not configured")
+                return False
+            
+            # Test with a simple completion
+            test_response = self.chat_client.chat.completions.create(
+                model=self.chat_deployment,
+                messages=[{"role": "user", "content": "Hello"}],
+                max_tokens=5
+            )
+            
+            # Check if response is valid
+            if test_response and test_response.choices:
+                logger.debug("OpenAI health check passed")
+                return True
+            else:
+                logger.warning("OpenAI health check failed - invalid response")
+                return False
+                
+        except Exception as e:
+            logger.error(f"OpenAI health check failed: {e}")
+            return False
 
 # Global instance for easy access
 try:

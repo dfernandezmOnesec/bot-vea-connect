@@ -9,18 +9,19 @@ features and enhanced error handling.
 import logging
 import json
 import pickle
-from typing import List, Dict, Any, Optional, Tuple
-from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional, Tuple, Mapping
+from datetime import datetime, timezone, timedelta
 import redis
 from redis.commands.search.field import TextField, VectorField
 # from redis.commands.search.indexDefinition import IndexDefinition, IndexType  # Comentado por compatibilidad
 from redis.exceptions import RedisError, ConnectionError, TimeoutError
 from config.settings import settings
+from shared_code.interfaces import IRedisService
 import os
 
 logger = logging.getLogger(__name__)
 
-class RedisService:
+class RedisService(IRedisService):
     """Service class for Redis operations with production-grade features."""
     
     def __init__(self):
@@ -29,7 +30,7 @@ class RedisService:
             # Build connection parameters
             connection_params = {
                 "host": settings.redis_host,
-                "port": int(settings.redis_port),
+                "port": int(settings.redis_port) if settings.redis_port else 6379,
                 "decode_responses": False,  # Keep binary for embeddings
                 "socket_connect_timeout": 10,
                 "socket_timeout": 10,
@@ -48,7 +49,10 @@ class RedisService:
                 connection_params["ssl"] = True
                 connection_params["ssl_cert_reqs"] = None
             
-            self.redis_client = redis.Redis(**connection_params)
+            if settings.redis_connection_string:
+                self.redis_client = redis.from_url(settings.redis_connection_string, **connection_params)
+            else:
+                self.redis_client = redis.Redis(**connection_params)
             
             # Test connection
             self._validate_connection()
@@ -129,9 +133,9 @@ class RedisService:
                 "text": metadata.get("text", ""),
                 "filename": metadata.get("filename", ""),
                 "content_type": metadata.get("content_type", ""),
-                "upload_date": metadata.get("upload_date", datetime.utcnow().isoformat()),
+                "upload_date": metadata.get("upload_date", datetime.now(timezone.utc).isoformat()),
                 "file_size": metadata.get("file_size", 0),
-                "processed_date": datetime.utcnow().isoformat(),
+                "processed_date": datetime.now(timezone.utc).isoformat(),
                 "embedding_dimension": len(embedding)
             }
             
@@ -185,7 +189,7 @@ class RedisService:
                 pass  # Index doesn't exist, create it
             
             # Define enhanced schema for the index
-            schema = (
+            schema = [
                 TextField("document_id", weight=1.0),
                 TextField("text", weight=0.8),
                 TextField("filename", weight=0.6),
@@ -196,15 +200,12 @@ class RedisService:
                     "FLAT",
                     {"TYPE": "FLOAT32", "DIM": 1536}  # OpenAI ada-002 embedding dimension
                 )
-            )
+            ]
             
             # Create the index
             self.redis_client.ft(index_name).create_index(
                 schema,
-                definition={
-                    "prefix": ["doc:"],
-                    "index_type": "HASH"
-                }
+                definition=None
             )
             
             logger.info(f"Search index created successfully: {index_name}")
@@ -257,19 +258,20 @@ class RedisService:
             
             # Build search query with vector similarity
             query = f"*=>[KNN {top_k} @embedding $embedding AS score]"
-            query_params = {
+            # Pass bytes directly for vector search
+            query_params: Mapping[str, bytes] = {
                 "embedding": embedding_bytes
             }
             
             # Execute search
             results = self.redis_client.ft(index_name).search(
                 query,
-                query_params=query_params
+                query_params=query_params  # type: ignore
             )
             
             # Process and filter results
             similar_documents = []
-            for doc in results.docs:
+            for doc in results.docs:  # type: ignore
                 score = float(doc.score)
                 
                 # Filter by similarity threshold
@@ -350,20 +352,20 @@ class RedisService:
                 return None
             
             # Deserialize embedding
-            if b"embedding" in document_data:
+            if b"embedding" in document_data:  # type: ignore
                 try:
-                    document_data[b"embedding"] = pickle.loads(document_data[b"embedding"])
+                    document_data[b"embedding"] = pickle.loads(document_data[b"embedding"])  # type: ignore
                 except Exception as e:
                     logger.warning(f"Failed to deserialize embedding for document {document_id}: {e}")
-                    document_data[b"embedding"] = None
+                    document_data[b"embedding"] = None  # type: ignore
             
             # Convert bytes to strings for text fields
             result = {}
-            for key, value in document_data.items():
-                if isinstance(value, bytes) and key != b"embedding":
-                    result[key.decode('utf-8')] = value.decode('utf-8')
+            for doc_key, doc_value in document_data.items():  # type: ignore
+                if isinstance(doc_value, bytes) and doc_key != b"embedding":
+                    result[doc_key.decode('utf-8')] = doc_value.decode('utf-8')
                 else:
-                    result[key.decode('utf-8') if isinstance(key, bytes) else key] = value
+                    result[doc_key.decode('utf-8') if isinstance(doc_key, bytes) else doc_key] = doc_value
             
             logger.info(f"Document retrieved successfully: {document_id}")
             return result
@@ -393,7 +395,7 @@ class RedisService:
             key = f"doc:{document_id}"
             result = self.redis_client.delete(key)
             
-            if result > 0:
+            if result > 0:  # type: ignore
                 logger.info(f"Document deleted successfully: {document_id}")
                 return True
             else:
@@ -427,7 +429,7 @@ class RedisService:
             cursor = 0
             
             while True:
-                cursor, keys = self.redis_client.scan(cursor, match=pattern, count=50)
+                cursor, keys = self.redis_client.scan(cursor, match=pattern, count=50)  # type: ignore
                 documents.extend([key.decode('utf-8').replace('doc:', '') for key in keys])
                 
                 if cursor == 0 or len(documents) >= limit:
@@ -463,14 +465,22 @@ class RedisService:
         try:
             info = self.redis_client.ft(index_name).info()
             
-            # Convert bytes to strings
+            # Convertir bytes a cadenas de texto
             result = {}
-            for key, value in info.items():
-                if isinstance(key, bytes):
-                    key = key.decode('utf-8')
-                if isinstance(value, bytes):
-                    value = value.decode('utf-8')
-                result[key] = value
+            if hasattr(info, "items"):
+                for key, value in info.items():  # type: ignore
+                    if isinstance(key, bytes):
+                        key = key.decode('utf-8')
+                    if isinstance(value, bytes):
+                        value = value.decode('utf-8')
+                    result[key] = value
+            else:
+                logger.warning("El objeto info no tiene el método 'items'. No se puede convertir a diccionario.")
+                # Si no tiene items, intentar convertir el objeto directamente
+                if hasattr(info, '__dict__'):
+                    result = info.__dict__
+                else:
+                    result = {"info": str(info)}
             
             logger.info(f"Retrieved index info for: {index_name}")
             return result
@@ -509,6 +519,80 @@ class RedisService:
         except Exception as e:
             logger.error(f"Failed to get document count: {e}")
             raise
+
+    def set(self, key: str, value: str, expiration: Optional[int] = None) -> bool:
+        """
+        Set a key-value pair in Redis.
+        
+        Args:
+            key: Redis key
+            value: Value to store
+            expiration: Optional expiration time in seconds
+            
+        Returns:
+            bool: True if operation successful
+        """
+        try:
+            if expiration:
+                self.redis_client.set(key, value, ex=expiration)
+            else:
+                self.redis_client.set(key, value)
+            return True
+        except Exception as e:
+            logger.error(f"Error setting key {key}: {e}")
+            return False
+    
+    def get(self, key: str) -> Optional[str]:
+        """
+        Get a value from Redis.
+        
+        Args:
+            key: Redis key
+            
+        Returns:
+            Optional[str]: Value if found, None otherwise
+        """
+        try:
+            value = self.redis_client.get(key)
+            if value is None:
+                return None
+            return value.decode('utf-8') if isinstance(value, bytes) else str(value)
+        except Exception as e:
+            logger.error(f"Error getting key {key}: {e}")
+            return None
+    
+    def delete(self, key: str) -> bool:
+        """
+        Delete a key from Redis.
+        
+        Args:
+            key: Redis key to delete
+            
+        Returns:
+            bool: True if key was deleted, False if not found
+        """
+        try:
+            result = self.redis_client.delete(key)
+            return bool(result)
+        except Exception as e:
+            logger.error(f"Error deleting key {key}: {e}")
+            return False
+    
+    def exists(self, key: str) -> bool:
+        """
+        Check if a key exists in Redis.
+        
+        Args:
+            key: Redis key to check
+            
+        Returns:
+            bool: True if key exists, False otherwise
+        """
+        try:
+            return bool(self.redis_client.exists(key))
+        except Exception as e:
+            logger.error(f"Error checking existence of key {key}: {e}")
+            return False
 
     def health_check(self) -> bool:
         """

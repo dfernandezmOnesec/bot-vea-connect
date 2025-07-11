@@ -26,9 +26,10 @@ class TestWhatsAppService:
     @pytest.fixture
     def whatsapp_service(self, mock_settings_env):
         with patch('shared_code.whatsapp_service.WhatsAppService._validate_configuration'):
-            service = WhatsAppService()
+            service = WhatsAppService(skip_validation=True)
             service.base_url = "https://graph.facebook.com/v16.0/12345"
             service.headers = {"Authorization": "Bearer test-token", "Content-Type": "application/json"}
+            service.verify_token = "verify-token"  # Token del mock de entorno
             return service
 
     @patch('shared_code.whatsapp_service.requests.post')
@@ -106,8 +107,22 @@ class TestWhatsAppService:
             whatsapp_service.send_template_message("template_name", {})
 
     def test_verify_webhook_success(self, whatsapp_service):
-        result = whatsapp_service.verify_webhook("subscribe", "verify-token", "challenge")
-        assert result == "challenge"
+        """Test successful webhook verification."""
+        # Usar el token del mock de entorno
+        result = whatsapp_service.verify_webhook(
+            mode="subscribe",
+            token="verify-token",  # Debe coincidir con el mock
+            challenge="test_challenge"
+        )
+        assert result == "test_challenge"
+        
+        # También probar con el token del fixture
+        result2 = whatsapp_service.verify_webhook(
+            mode="subscribe",
+            token="verify-token",  # Token del fixture
+            challenge="test_challenge"
+        )
+        assert result2 == "test_challenge"
 
     def test_verify_webhook_invalid(self, whatsapp_service):
         result = whatsapp_service.verify_webhook("subscribe", "wrong-token", "challenge")

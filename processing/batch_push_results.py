@@ -189,11 +189,11 @@ def extract_text_from_pdf(file_path: str) -> str:
         str: Extracted text content
     """
     try:
-        import PyPDF2
+        import pypdf
         
         text = ""
         with open(file_path, 'rb') as file:
-            pdf_reader = PyPDF2.PdfReader(file)
+            pdf_reader = pypdf.PdfReader(file)
             for page in pdf_reader.pages:
                 text += page.extract_text() + "\n"
         

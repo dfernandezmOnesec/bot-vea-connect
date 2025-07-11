@@ -9,14 +9,15 @@ and comprehensive logging.
 import logging
 import os
 from typing import Optional, List, Dict, Any, BinaryIO
-from datetime import datetime
+from datetime import datetime, timezone
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 from azure.core.exceptions import AzureError, ResourceNotFoundError, ClientAuthenticationError
 from config.settings import settings
+from shared_code.interfaces import IBlobStorageService
 
 logger = logging.getLogger(__name__)
 
-class AzureBlobStorageService:
+class AzureBlobStorageService(IBlobStorageService):
     """Service class for Azure Blob Storage operations with production-grade features."""
     
     def __init__(self):
@@ -27,6 +28,11 @@ class AzureBlobStorageService:
             self.account_name = settings.blob_account_name
             
             # Initialize clients
+            if not self.connection_string:
+                raise ValueError("Azure Storage connection string is required")
+            if not self.container_name:
+                raise ValueError("Blob container name is required")
+                
             self.blob_service_client = BlobServiceClient.from_connection_string(
                 self.connection_string
             )
@@ -95,7 +101,7 @@ class AzureBlobStorageService:
             
             # Prepare metadata
             upload_metadata = {
-                "upload_date": datetime.utcnow().isoformat(),
+                "upload_date": datetime.now(timezone.utc).isoformat(),
                 "file_size": str(file_size),
                 "source_path": file_path
             }
@@ -154,7 +160,7 @@ class AzureBlobStorageService:
         try:
             # Prepare metadata
             upload_metadata = {
-                "upload_date": datetime.utcnow().isoformat(),
+                "upload_date": datetime.now(timezone.utc).isoformat(),
                 "upload_method": "stream"
             }
             if metadata:
@@ -219,7 +225,7 @@ class AzureBlobStorageService:
             logger.error(f"Failed to download blob {blob_name}: {e}")
             raise
 
-    def download_stream(self, blob_name: str) -> BinaryIO:
+    def download_stream(self, blob_name: str) -> Any:
         """
         Download a blob as a stream.
         
@@ -433,6 +439,96 @@ class AzureBlobStorageService:
         except Exception as e:
             logger.error(f"Failed to get properties for blob {blob_name}: {e}")
             raise
+
+    # Cambiar nombre de los métodos internos para evitar conflicto
+    def _upload_file_internal(self, file_path: str, blob_name: str, metadata: Optional[Dict[str, str]] = None, content_type: Optional[str] = None) -> str:
+        # Copia el cuerpo de la función upload_file original aquí
+        try:
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"Source file not found: {file_path}")
+            file_size = os.path.getsize(file_path)
+            upload_metadata = {
+                "upload_date": datetime.now(timezone.utc).isoformat(),
+                "file_size": str(file_size),
+                "source_path": file_path
+            }
+            if metadata:
+                upload_metadata.update(metadata)
+            blob_client = self.container_client.get_blob_client(blob_name)
+            with open(file_path, "rb") as data:
+                blob_client.upload_blob(
+                    data, 
+                    metadata=upload_metadata, 
+                    overwrite=True,
+                    content_settings=None if not content_type else 
+                        blob_client.get_blob_properties().content_settings
+                )
+            blob_url = blob_client.url
+            logger.info(f"File uploaded successfully: {blob_name} ({file_size} bytes) -> {blob_url}")
+            return blob_url
+        except FileNotFoundError as e:
+            logger.error(f"File not found: {file_path}")
+            raise
+        except AzureError as e:
+            logger.error(f"Azure Blob Storage upload failed for {blob_name}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error uploading {blob_name}: {e}")
+            raise
+
+    def upload_file(self, file_path: str, container_name: str, blob_name: str) -> str:
+        # Método de la interfaz
+        return self._upload_file_internal(file_path, blob_name)
+
+    def _download_file_internal(self, blob_name: str, destination_path: str) -> bool:
+        # Copia el cuerpo de la función download_file original aquí
+        try:
+            blob_client = self.container_client.get_blob_client(blob_name)
+            os.makedirs(os.path.dirname(destination_path), exist_ok=True)
+            with open(destination_path, "wb") as download_file:
+                download_stream = blob_client.download_blob()
+                download_file.write(download_stream.readall())
+            file_size = os.path.getsize(destination_path)
+            logger.info(f"File downloaded successfully: {blob_name} -> {destination_path} ({file_size} bytes)")
+            return True
+        except ResourceNotFoundError as e:
+            logger.error(f"Blob not found: {blob_name}")
+            raise
+        except AzureError as e:
+            logger.error(f"Azure Blob Storage download failed for {blob_name}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to download blob {blob_name}: {e}")
+            raise
+
+    def download_file(self, container_name: str, blob_name: str, destination_path: str) -> bool:
+        # Método de la interfaz
+        return self._download_file_internal(blob_name, destination_path)
+
+    def delete_file(self, container_name: str, blob_name: str) -> bool:
+        # Ignora container_name (ya está en self.container_name)
+        return self.delete_blob(blob_name)
+
+    def get_file_url(self, container_name: str, blob_name: str) -> str:
+        # Ignora container_name (ya está en self.container_name)
+        blob_client = self.container_client.get_blob_client(blob_name)
+        return blob_client.url
+
+    # health_check ya existe y cumple con la interfaz
+    def health_check(self) -> bool:
+        """
+        Perform a health check for the Azure Blob Storage service.
+        
+        Returns:
+            bool: True if healthy, False otherwise
+        """
+        try:
+            self._validate_connection()
+            logger.info("Azure Blob Storage health check passed.")
+            return True
+        except Exception as e:
+            logger.error(f"Azure Blob Storage health check failed: {e}")
+            return False
 
 # Global instance for easy access
 blob_storage_service = AzureBlobStorageService() 

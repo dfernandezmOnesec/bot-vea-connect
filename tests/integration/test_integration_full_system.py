@@ -186,6 +186,7 @@ class TestFullSystemIntegration:
             response = blob_trigger_main(blob_trigger)
 
             # Verificar respuesta exitosa
+            assert response is not None
             assert response.status_code == 200
             response_data = json.loads(response.get_body())
             assert response_data["success"] is True
@@ -590,6 +591,8 @@ class TestFullSystemIntegration:
                 }]
             }]
         }
+        req.headers = {}  # Asegurar que headers es un dict real
+        req.params = {}   # Asegurar que params es un dict real
 
         # 3. Procesar cada documento (simular blob trigger)
         blob_input = Mock()

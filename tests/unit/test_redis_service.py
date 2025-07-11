@@ -37,9 +37,14 @@ class TestRedisService:
         mock_client.get.return_value = b"test_value"
         mock_redis.return_value = mock_client
         
-        with patch('shared_code.redis_service.RedisService._validate_connection'):
-            service = RedisService()
-            return service
+        # Mock settings.redis_connection_string como string válido
+        mock_settings_env.redis_connection_string = "redis://localhost:6379/0"
+        
+        # Mock redis.from_url para evitar parseo real
+        with patch('shared_code.redis_service.redis.from_url', return_value=mock_client):
+            with patch('shared_code.redis_service.RedisService._validate_connection'):
+                service = RedisService()
+                return service
 
     def test_store_embedding_success(self, redis_service):
         redis_service.redis_client.hset.return_value = True

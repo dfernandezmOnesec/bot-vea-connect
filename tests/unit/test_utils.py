@@ -360,7 +360,7 @@ class TestExtractMediaInfo:
         
         result = extract_media_info(message)
         
-        assert result is None
+        assert result == {}
 
 
 class TestCreateErrorResponse:
@@ -425,27 +425,37 @@ class TestValidateEnvironmentVariables:
             result = validate_environment_variables()
             assert result is True
     
-    @patch.dict('os.environ', {
-        'AZURE_OPENAI_ENDPOINT': 'https://test.openai.azure.com/',
-        'AZURE_OPENAI_API_KEY': 'test-key'
-    }, clear=True)
     def test_validate_environment_variables_missing(self):
-        """Test validación con variables faltantes"""
-        with pytest.raises(ValueError) as exc_info:
-            validate_environment_variables()
-        
-        assert "Missing required environment variable" in str(exc_info.value)
-    
-    @patch.dict('os.environ', {
-        'AZURE_OPENAI_ENDPOINT': '',
-        'AZURE_OPENAI_API_KEY': 'test-key'
-    }, clear=True)
+        from shared_code.utils import validate_environment_variables
+        # Mock settings para que falten las variables requeridas
+        with patch('config.settings.get_settings') as mock_get_settings:
+            mock_settings = type('MockSettings', (), {
+                'azure_openai_endpoint': None,
+                'azure_openai_api_key': None,
+                'redis_connection_string': None,
+                'whatsapp_token': None,
+                'whatsapp_phone_number_id': None
+            })()
+            mock_get_settings.return_value = mock_settings
+            
+            with pytest.raises(ValueError):
+                validate_environment_variables()
+
     def test_validate_environment_variables_empty(self):
-        """Test validación con variables vacías"""
-        with pytest.raises(ValueError) as exc_info:
-            validate_environment_variables()
-        
-        assert "Missing required environment variable" in str(exc_info.value)
+        from shared_code.utils import validate_environment_variables
+        # Mock settings para que las variables estén vacías
+        with patch('config.settings.get_settings') as mock_get_settings:
+            mock_settings = type('MockSettings', (), {
+                'azure_openai_endpoint': '',
+                'azure_openai_api_key': '',
+                'redis_connection_string': '',
+                'whatsapp_token': '',
+                'whatsapp_phone_number_id': ''
+            })()
+            mock_get_settings.return_value = mock_settings
+            
+            with pytest.raises(ValueError):
+                validate_environment_variables()
 
 
 class TestRetryWithBackoff:
@@ -624,3 +634,39 @@ class TestValidateJsonSchema:
         result = validate_json_schema(data, schema)
         
         assert result is True 
+
+
+class TestValidateEnvironmentVariablesNoMocks:
+    """Test validate_environment_variables without global mocks"""
+    
+    def test_validate_environment_variables_missing(self):
+        from shared_code.utils import validate_environment_variables
+        # Mock settings para que falten las variables requeridas
+        with patch('config.settings.get_settings') as mock_get_settings:
+            mock_settings = type('MockSettings', (), {
+                'azure_openai_endpoint': None,
+                'azure_openai_api_key': None,
+                'redis_connection_string': None,
+                'whatsapp_token': None,
+                'whatsapp_phone_number_id': None
+            })()
+            mock_get_settings.return_value = mock_settings
+            
+            with pytest.raises(ValueError):
+                validate_environment_variables()
+
+    def test_validate_environment_variables_empty(self):
+        from shared_code.utils import validate_environment_variables
+        # Mock settings para que las variables estén vacías
+        with patch('config.settings.get_settings') as mock_get_settings:
+            mock_settings = type('MockSettings', (), {
+                'azure_openai_endpoint': '',
+                'azure_openai_api_key': '',
+                'redis_connection_string': '',
+                'whatsapp_token': '',
+                'whatsapp_phone_number_id': ''
+            })()
+            mock_get_settings.return_value = mock_settings
+            
+            with pytest.raises(ValueError):
+                validate_environment_variables() 

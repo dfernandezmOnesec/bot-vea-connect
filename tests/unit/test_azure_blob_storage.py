@@ -102,7 +102,7 @@ class TestAzureBlobStorageService:
              patch('os.path.exists', return_value=True), \
              patch('os.path.getsize', return_value=12):
             
-            result = blob_storage_service.upload_file("test.txt", "test-blob.txt")
+            result = blob_storage_service._upload_file_internal("test.txt", "test-blob.txt")
             
             assert result == "https://test.blob.core.windows.net/test-container/test.txt"
             mock_blob_client.upload_blob.assert_called_once()
@@ -111,7 +111,7 @@ class TestAzureBlobStorageService:
         """Test file upload with non-existent file."""
         with patch('os.path.exists', return_value=False):
             with pytest.raises(FileNotFoundError):
-                blob_storage_service.upload_file("nonexistent.txt", "test-blob.txt")
+                blob_storage_service._upload_file_internal("nonexistent.txt", "test-blob.txt")
 
     def test_upload_file_azure_error(self, blob_storage_service):
         """Test file upload with Azure error."""
@@ -124,7 +124,7 @@ class TestAzureBlobStorageService:
              patch('os.path.getsize', return_value=12):
             
             with pytest.raises(AzureError):
-                blob_storage_service.upload_file("test.txt", "test-blob.txt")
+                blob_storage_service._upload_file_internal("test.txt", "test-blob.txt")
 
     def test_upload_stream_success(self, blob_storage_service):
         """Test successful stream upload."""
@@ -163,7 +163,7 @@ class TestAzureBlobStorageService:
              patch('os.makedirs'), \
              patch('os.path.getsize', return_value=12):
             
-            result = blob_storage_service.download_file("test-blob.txt", "local-test.txt")
+            result = blob_storage_service._download_file_internal("test-blob.txt", "local-test.txt")
             
             assert result is True
             mock_blob_client.download_blob.assert_called_once()
@@ -177,7 +177,7 @@ class TestAzureBlobStorageService:
         with patch('os.makedirs'), \
              patch('builtins.open', mock_open()), \
              pytest.raises(ResourceNotFoundError):
-            blob_storage_service.download_file("nonexistent.txt", "/tmp/local.txt")
+            blob_storage_service._download_file_internal("nonexistent.txt", "/tmp/local.txt")
 
     def test_download_stream_success(self, blob_storage_service):
         """Test successful stream download."""

@@ -10,7 +10,7 @@ import json
 import requests
 import time
 from typing import Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 def test_event_grid_webhook():
     """
@@ -61,7 +61,7 @@ def create_test_event() -> Dict[str, Any]:
         "id": f"test-event-{int(time.time())}",
         "eventType": "Microsoft.Communication.AdvancedMessageReceived",
         "subject": "/subscriptions/test/resourceGroups/test/providers/Microsoft.Communication/communicationServices/test",
-        "eventTime": datetime.utcnow().isoformat() + "Z",
+        "eventTime": datetime.now(timezone.utc).isoformat() + "Z",
         "dataVersion": "1.0",
         "data": {
             "messageId": f"msg-{int(time.time())}",
@@ -81,7 +81,7 @@ def create_test_event() -> Dict[str, Any]:
                     "text": "Hola bot, este es un mensaje de prueba"
                 }
             },
-            "receivedTimestamp": datetime.utcnow().isoformat() + "Z"
+            "receivedTimestamp": datetime.now(timezone.utc).isoformat() + "Z"
         }
     }
 

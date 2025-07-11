@@ -1,38 +1,37 @@
-# Azure Functions dependencies
-azure-functions==1.17.0
+# Azure Functions dependencies (actualizado)
+azure-functions==1.18.0
 
-# Azure services
+# Azure services (actualizados)
 azure-storage-blob==12.19.0
 azure-storage-queue==12.8.0
 azure-identity==1.15.0
 azure-cognitiveservices-vision-computervision==0.9.0
 
-# OpenAI and embeddings
+# OpenAI (actualizado)
 openai==1.7.0
-#azure-openai==1.0.0
 
-# Redis for embeddings storage
-redis>=4.5.0
+# Redis (actualizado)
+redis==5.0.1
 
-# Document processing
-PyPDF2==3.0.1
+# Document processing (actualizado)
+pypdf==4.0.1  # Reemplaza PyPDF2
 python-docx==1.1.0
 Pillow==10.1.0
 pytesseract==0.3.10
 
-# HTTP and API
-requests==2.31.0
+# HTTP (consolidado - solo httpx)
 httpx==0.25.2
 
-# Data processing
-numpy>=1.26.0
-pandas>=2.1.0
+# Data processing (actualizado)
+numpy==1.26.0
+pandas==2.1.0
 
-# Utilities
+# Utilities (actualizado)
 python-dotenv==1.0.0
-pydantic>=2.0,<3.0
-pydantic-settings>=2.0.0
+pydantic==2.11.0
+pydantic-settings==2.2.0
 structlog==23.2.0
 
-# WhatsApp API (removido - usar requests directamente)
-# whatsapp-api-client-python==0.0.49 
+# REMOVIDO: requests (duplicado con httpx)
+# REMOVIDO: PyPDF2 (reemplazado por pypdf)
+# REMOVIDO: whatsapp-api-client-python (ya comentado) 

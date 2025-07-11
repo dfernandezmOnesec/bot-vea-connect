@@ -40,7 +40,7 @@ def generate_document_id(filename: str, content_hash: Optional[str] = None) -> s
         else:
             doc_id = f"{base_name}_{uuid.uuid4().hex[:8]}_{timestamp}"
         
-        logger.info(f"Generated document ID: {doc_id}")
+        logger.info(sanitize_log_message(f"Generated document ID: {doc_id}"))
         return doc_id
         
     except Exception as e:
@@ -69,7 +69,7 @@ def calculate_file_hash(file_path: str, algorithm: str = "sha256") -> str:
                 hash_func.update(chunk)
         
         file_hash = hash_func.hexdigest()
-        logger.info(f"File hash calculated: {algorithm} = {file_hash[:16]}...")
+        logger.info(sanitize_log_message(f"File hash calculated: {algorithm} = {file_hash[:16]}..."))
         return file_hash
         
     except FileNotFoundError as e:
@@ -215,7 +215,7 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 100) -> List[st
         logger.error(f"Failed to chunk text: {e}")
         return [text]
 
-def format_file_size(size_bytes: int) -> str:
+def format_file_size(size_bytes: Union[int, float]) -> str:
     """
     Format file size in human-readable format.
     
@@ -379,34 +379,130 @@ def format_timestamp(timestamp: Union[datetime, str, float], format_str: str = "
         logger.error(f"Failed to format timestamp: {e}")
         return str(timestamp)
 
-def sanitize_log_message(message: str) -> str:
+def sanitize_phone_number(phone: str) -> str:
     """
-    Sanitize log message to remove sensitive information.
+    Sanitiza un número de teléfono para logs, mostrando solo los últimos 4 dígitos.
     
     Args:
-        message: Original log message
+        phone: Número de teléfono completo
         
     Returns:
-        str: Sanitized log message
+        str: Número sanitizado (ej: "+123456****7890")
     """
-    try:
-        # Remove potential sensitive data patterns
-        patterns = [
-            r'password["\']?\s*[:=]\s*["\']?[^"\s]+["\']?',
-            r'api_key["\']?\s*[:=]\s*["\']?[^"\s]+["\']?',
-            r'token["\']?\s*[:=]\s*["\']?[^"\s]+["\']?',
-            r'secret["\']?\s*[:=]\s*["\']?[^"\s]+["\']?'
-        ]
+    if not phone or len(phone) < 4:
+        return "****"
+    
+    # Mantener el código de país y los últimos 4 dígitos
+    if phone.startswith('+'):
+        # Para números internacionales
+        if len(phone) >= 8:
+            return phone[:len(phone)-8] + "****" + phone[-4:]
+        else:
+            return "****"
+    else:
+        # Para números locales
+        if len(phone) >= 4:
+            return "****" + phone[-4:]
+        else:
+            return "****"
+
+def sanitize_token(token: str) -> str:
+    """
+    Sanitiza un token para logs, mostrando solo los primeros y últimos caracteres.
+    
+    Args:
+        token: Token completo
         
-        sanitized = message
-        for pattern in patterns:
-            sanitized = re.sub(pattern, r'\1=***', sanitized, flags=re.IGNORECASE)
+    Returns:
+        str: Token sanitizado (ej: "abc...xyz")
+    """
+    if not token or len(token) < 6:
+        return "****"
+    
+    return token[:3] + "..." + token[-3:]
+
+def sanitize_email(email: str) -> str:
+    """
+    Sanitiza un email para logs, ocultando la parte local.
+    
+    Args:
+        email: Email completo
         
-        return sanitized
+    Returns:
+        str: Email sanitizado (ej: "***@example.com")
+    """
+    if not email or '@' not in email:
+        return "***@***"
+    
+    local, domain = email.split('@', 1)
+    if len(local) <= 2:
+        return "***@" + domain
+    else:
+        return local[:2] + "***@" + domain
+
+def sanitize_user_id(user_id: str) -> str:
+    """
+    Sanitiza un ID de usuario para logs.
+    
+    Args:
+        user_id: ID de usuario
         
-    except Exception as e:
-        logger.error(f"Failed to sanitize log message: {e}")
-        return message
+    Returns:
+        str: ID sanitizado
+    """
+    if not user_id or len(user_id) < 4:
+        return "****"
+    
+    return user_id[:2] + "****" + user_id[-2:]
+
+def sanitize_session_id(session_id: str) -> str:
+    """
+    Sanitiza un ID de sesión para logs.
+    
+    Args:
+        session_id: ID de sesión
+        
+    Returns:
+        str: ID sanitizado
+    """
+    if not session_id or len(session_id) < 8:
+        return "****"
+    
+    return session_id[:4] + "****" + session_id[-4:]
+
+def sanitize_log_message(message: str) -> str:
+    """
+    Sanitiza un mensaje completo de log, reemplazando información sensible.
+    
+    Args:
+        message: Mensaje original
+        
+    Returns:
+        str: Mensaje sanitizado
+    """
+    import re
+    
+    # Patrones para detectar información sensible
+    patterns = [
+        # Números de teléfono (varios formatos)
+        (r'\+?[\d\s\-\(\)]{10,}', lambda m: sanitize_phone_number(m.group(0))),
+        # Emails
+        (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', lambda m: sanitize_email(m.group(0))),
+        # Tokens (palabras que contengan 'token' seguido de caracteres)
+        (r'token["\']?\s*[:=]\s*["\']?([^"\s,}]+)', lambda m: f'token: {sanitize_token(m.group(1))}'),
+        # Keys (palabras que contengan 'key' seguido de caracteres)
+        (r'key["\']?\s*[:=]\s*["\']?([^"\s,}]+)', lambda m: f'key: {sanitize_token(m.group(1))}'),
+        # Passwords
+        (r'password["\']?\s*[:=]\s*["\']?([^"\s,}]+)', lambda m: 'password: ****'),
+        # Secrets
+        (r'secret["\']?\s*[:=]\s*["\']?([^"\s,}]+)', lambda m: f'secret: {sanitize_token(m.group(1))}'),
+    ]
+    
+    sanitized_message = message
+    for pattern, replacement in patterns:
+        sanitized_message = re.sub(pattern, replacement, sanitized_message, flags=re.IGNORECASE)
+    
+    return sanitized_message
 
 def setup_logging(level: int = logging.INFO, log_file: Optional[str] = None, name: str = "bot_vea_connect") -> logging.Logger:
     """
@@ -419,7 +515,7 @@ def setup_logging(level: int = logging.INFO, log_file: Optional[str] = None, nam
         logging.Logger: Logger configurado
     """
     log_format = '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
-    handlers = [logging.StreamHandler()]
+    handlers: List[logging.Handler] = [logging.StreamHandler()]
     if log_file:
         handlers.append(logging.FileHandler(log_file))
     logging.basicConfig(level=level, format=log_format, handlers=handlers, force=True)
@@ -428,7 +524,7 @@ def setup_logging(level: int = logging.INFO, log_file: Optional[str] = None, nam
     logger.setLevel(level)
     return logger
 
-def parse_whatsapp_message(payload: Dict[str, Any]) -> Dict[str, Any]:
+def parse_whatsapp_message(payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     Extrae información relevante de un mensaje de WhatsApp recibido vía webhook.
     Soporta mensajes de texto, imagen, audio, documento y maneja casos edge.
@@ -474,7 +570,7 @@ def parse_whatsapp_message(payload: Dict[str, Any]) -> Dict[str, Any]:
         return result
     except Exception as e:
         logger.error(f"Error al parsear mensaje de WhatsApp: {e}")
-        return None
+        return {}
 
 def extract_media_info(media_data: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -487,20 +583,55 @@ def extract_media_info(media_data: Dict[str, Any]) -> Dict[str, Any]:
         Dict con información del archivo multimedia
     """
     try:
-        if not media_data or not media_data.get("id"):
-            return None
-        media_info = {
-            "media_id": media_data.get("id"),
-            "id": media_data.get("id"),
-            "mime_type": media_data.get("mime_type"),
-            "sha256": media_data.get("sha256"),
-            "filename": media_data.get("filename"),
-            "url": media_data.get("url") if "url" in media_data else None
+        if not media_data:
+            return {}
+        
+        # Determinar el tipo de medio basándose en las claves del mensaje
+        media_type = None
+        if "image" in media_data:
+            media_type = "image"
+            media_info = media_data["image"]
+        elif "audio" in media_data:
+            media_type = "audio"
+            media_info = media_data["audio"]
+        elif "document" in media_data:
+            media_type = "document"
+            media_info = media_data["document"]
+        elif "video" in media_data:
+            media_type = "video"
+            media_info = media_data["video"]
+        else:
+            # Si no hay clave específica, intentar determinar por MIME type
+            mime_type = media_data.get("mime_type", "")
+            if mime_type.startswith("image/"):
+                media_type = "image"
+            elif mime_type.startswith("audio/"):
+                media_type = "audio"
+            elif mime_type.startswith("video/"):
+                media_type = "video"
+            elif mime_type.startswith("application/"):
+                media_type = "document"
+            else:
+                media_type = "unknown"
+            media_info = media_data
+        
+        if not media_info or not media_info.get("id"):
+            return {}
+        
+        result = {
+            "type": media_type,
+            "media_id": media_info.get("id"),
+            "id": media_info.get("id"),
+            "mime_type": media_info.get("mime_type"),
+            "sha256": media_info.get("sha256"),
+            "filename": media_info.get("filename"),
+            "url": media_info.get("url") if "url" in media_info else None
         }
-        return media_info
+        
+        return result
     except Exception as e:
         logger.error(f"Error extrayendo información multimedia: {str(e)}")
-        return None
+        return {}
 
 def format_response(message: str, success: bool = True, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
@@ -518,7 +649,7 @@ def format_response(message: str, success: bool = True, data: Optional[Dict[str,
         response = {
             "success": success,
             "message": message,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         if data:
@@ -531,10 +662,10 @@ def format_response(message: str, success: bool = True, data: Optional[Dict[str,
         return {
             "success": False,
             "message": "Lo siento, hubo un error procesando tu mensaje.",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
-def create_error_response(message: str, error_code: str = None, details: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def create_error_response(message: str, error_code: Optional[str] = None, details: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Crear respuesta de error estandarizada.
     
@@ -550,7 +681,7 @@ def create_error_response(message: str, error_code: str = None, details: Optiona
         "success": False,
         "error": True,
         "message": message,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
     if error_code:
         response["error_code"] = error_code
@@ -629,7 +760,7 @@ def generate_session_id(phone_number: Optional[str] = None) -> str:
         ID único de sesión
     """
     try:
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         unique_id = str(uuid.uuid4())
         
         if phone_number:
@@ -732,7 +863,7 @@ def retry_with_backoff(func, max_retries: int = 3, base_delay: float = 1.0, max_
     Raises:
         Exception: Si todos los reintentos fallan
     """
-    last_exception = None
+    last_exception: Optional[Exception] = None
     
     for attempt in range(max_retries + 1):
         try:
@@ -749,7 +880,10 @@ def retry_with_backoff(func, max_retries: int = 3, base_delay: float = 1.0, max_
             logger.warning(f"Intento {attempt + 1} falló, reintentando en {delay}s: {str(e)}")
             time.sleep(delay)
     
-    raise last_exception
+    if last_exception:
+        raise last_exception
+    else:
+        raise Exception("Unknown error occurred")
 
 def validate_json_schema(data: Dict[str, Any], schema: Dict[str, Any]) -> bool:
     """

@@ -1,6 +1,6 @@
 import azure.functions as func
 import logging
-from .whatsapp_bot import WhatsAppBot
+from whatsapp_bot.whatsapp_bot import WhatsAppBot
 
 def main(event: func.EventGridEvent) -> func.HttpResponse:
     """

@@ -1,0 +1,129 @@
+{
+  "test_messages": [
+    {
+      "id": "test_001",
+      "description": "Saludo básico",
+      "message": {
+        "text": {"body": "Hola"},
+        "from": "+1234567890",
+        "timestamp": "2024-01-01T10:00:00Z"
+      },
+      "expected_behavior": "Respuesta de saludo cálida y pastoral",
+      "critical": true
+    },
+    {
+      "id": "test_002",
+      "description": "Pregunta sobre ministerios",
+      "message": {
+        "text": {"body": "¿Qué ministerios tienen disponibles?"},
+        "from": "+1234567890",
+        "timestamp": "2024-01-01T10:01:00Z"
+      },
+      "expected_behavior": "Lista de ministerios disponibles",
+      "critical": true
+    },
+    {
+      "id": "test_003",
+      "description": "Consulta sobre eventos",
+      "message": {
+        "text": {"body": "¿Cuándo es el próximo evento?"},
+        "from": "+1234567890",
+        "timestamp": "2024-01-01T10:02:00Z"
+      },
+      "expected_behavior": "Información sobre próximos eventos",
+      "critical": true
+    },
+    {
+      "id": "test_004",
+      "description": "Pregunta sobre donaciones",
+      "message": {
+        "text": {"body": "¿Cómo puedo hacer una donación?"},
+        "from": "+1234567890",
+        "timestamp": "2024-01-01T10:03:00Z"
+      },
+      "expected_behavior": "Instrucciones para donaciones",
+      "critical": true
+    },
+    {
+      "id": "test_005",
+      "description": "Solicitud de oración",
+      "message": {
+        "text": {"body": "Necesito oración por mi familia"},
+        "from": "+1234567890",
+        "timestamp": "2024-01-01T10:04:00Z"
+      },
+      "expected_behavior": "Respuesta pastoral con oferta de oración",
+      "critical": true
+    },
+    {
+      "id": "test_006",
+      "description": "Mensaje con imagen",
+      "message": {
+        "image": {
+          "id": "image_123",
+          "url": "https://example.com/test-image.jpg",
+          "mime_type": "image/jpeg"
+        },
+        "from": "+1234567890",
+        "timestamp": "2024-01-01T10:05:00Z"
+      },
+      "expected_behavior": "Análisis de imagen y respuesta apropiada",
+      "critical": false
+    },
+    {
+      "id": "test_007",
+      "description": "Documento PDF",
+      "message": {
+        "document": {
+          "id": "doc_123",
+          "url": "https://example.com/test-document.pdf",
+          "mime_type": "application/pdf",
+          "filename": "test.pdf"
+        },
+        "from": "+1234567890",
+        "timestamp": "2024-01-01T10:06:00Z"
+      },
+      "expected_behavior": "Confirmación de recepción de documento",
+      "critical": false
+    },
+    {
+      "id": "test_008",
+      "description": "Mensaje largo",
+      "message": {
+        "text": {"body": "Hola, tengo una pregunta muy específica sobre el ministerio de jóvenes y me gustaría saber si hay algún evento especial este fin de semana para adolescentes. También quería preguntar sobre las donaciones y si puedo hacerlas en línea. Muchas gracias por tu ayuda."},
+        "from": "+1234567890",
+        "timestamp": "2024-01-01T10:07:00Z"
+      },
+      "expected_behavior": "Respuesta completa que aborde todos los puntos",
+      "critical": true
+    },
+    {
+      "id": "test_009",
+      "description": "Mensaje con emojis",
+      "message": {
+        "text": {"body": "Hola! 😊 ¿Cómo están? 🙏"},
+        "from": "+1234567890",
+        "timestamp": "2024-01-01T10:08:00Z"
+      },
+      "expected_behavior": "Respuesta que maneje emojis apropiadamente",
+      "critical": false
+    },
+    {
+      "id": "test_010",
+      "description": "Pregunta fuera de contexto",
+      "message": {
+        "text": {"body": "¿Cuál es la capital de Francia?"},
+        "from": "+1234567890",
+        "timestamp": "2024-01-01T10:09:00Z"
+      },
+      "expected_behavior": "Redirección a tema pastoral o respuesta apropiada",
+      "critical": false
+    }
+  ],
+  "test_config": {
+    "timeout_seconds": 30,
+    "max_response_time_ms": 5000,
+    "similarity_threshold": 0.7,
+    "critical_tests_must_pass": true
+  }
+} 
