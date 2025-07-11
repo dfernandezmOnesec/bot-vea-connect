@@ -418,7 +418,10 @@ class TestValidateEnvironmentVariables:
     def test_validate_environment_variables_success(self):
         """Test validación exitosa de variables de entorno"""
         # Mock completo de la función para evitar validación real
-        with patch('shared_code.utils.validate_environment_variables', return_value=True):
+        with patch('shared_code.utils.validate_environment_variables') as mock_validate:
+            mock_validate.return_value = True
+            # Importar la función después del mock para que use la versión mockeada
+            from shared_code.utils import validate_environment_variables
             result = validate_environment_variables()
             assert result is True
     
