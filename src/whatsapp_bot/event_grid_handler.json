@@ -1,0 +1,15 @@
+{
+  "scriptFile": "event_grid_handler.py",
+  "bindings": [
+    {
+      "type": "eventGridTrigger",
+      "direction": "in",
+      "name": "event"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "$return"
+    }
+  ]
+} 

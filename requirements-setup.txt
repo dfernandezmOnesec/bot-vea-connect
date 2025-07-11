@@ -1,0 +1,5 @@
+# Dependencias para configuración de Event Grid y Azure Communication Services
+azure-identity>=1.15.0
+azure-mgmt-eventgrid>=10.2.0
+azure-mgmt-communication>=2.0.0
+azure-mgmt-resource>=23.0.0 

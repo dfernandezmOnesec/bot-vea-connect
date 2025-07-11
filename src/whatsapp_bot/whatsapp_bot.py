@@ -112,7 +112,7 @@ class WhatsAppBot:
     
     def process_message(self, req: func.HttpRequest) -> func.HttpResponse:
         """
-        Procesar mensaje entrante de WhatsApp.
+        Procesar mensaje entrante de WhatsApp via HTTP webhook.
         
         Args:
             req: Request HTTP de Azure Functions
@@ -172,6 +172,282 @@ class WhatsAppBot:
             
             return func.HttpResponse(
                 json.dumps(error_response),
+                mimetype="application/json",
+                status_code=500
+            )
+    
+    def process_event_grid_event(self, event: func.EventGridEvent) -> func.HttpResponse:
+        """
+        Procesar evento de Event Grid desde Azure Communication Services.
+        
+        Args:
+            event: Event Grid event de Azure Functions
+            
+        Returns:
+            func.HttpResponse: Respuesta HTTP
+        """
+        try:
+            logger.info(f"Procesando Event Grid event: {event.event_type}")
+            logger.info(f"Event subject: {event.subject}")
+            
+            # Manejar diferentes tipos de eventos
+            if event.event_type == "Microsoft.Communication.AdvancedMessageReceived":
+                return self._handle_acs_message_received(event)
+            elif event.event_type == "Microsoft.Communication.AdvancedMessageDeliveryStatusUpdated":
+                return self._handle_acs_delivery_status_update(event)
+            elif event.event_type == "Microsoft.Communication.AdvancedMessageReadStatusUpdated":
+                return self._handle_acs_read_status_update(event)
+            else:
+                logger.info(f"Evento no manejado: {event.event_type}")
+                return func.HttpResponse(
+                    json.dumps({"status": "ignored", "event_type": event.event_type}),
+                    mimetype="application/json",
+                    status_code=200
+                )
+                
+        except Exception as e:
+            logger.error(f"Error procesando Event Grid event: {str(e)}")
+            logger.error(traceback.format_exc())
+            
+            error_response = create_error_response(
+                "Error procesando evento",
+                error_code="EVENT_PROCESSING_ERROR"
+            )
+            
+            return func.HttpResponse(
+                json.dumps(error_response),
+                mimetype="application/json",
+                status_code=500
+            )
+    
+    def _handle_acs_message_received(self, event: func.EventGridEvent) -> func.HttpResponse:
+        """
+        Manejar mensaje recibido via Azure Communication Services.
+        
+        Args:
+            event: Event Grid event con datos del mensaje
+            
+        Returns:
+            func.HttpResponse: Respuesta HTTP
+        """
+        try:
+            event_data = event.get_json()
+            logger.info(f"Procesando mensaje ACS: {json.dumps(event_data, indent=2)}")
+            
+            # Extraer datos del mensaje
+            message_data = event_data.get("data", {})
+            message = message_data.get("message", {})
+            sender = message_data.get("from", {})
+            
+            # Obtener contenido del mensaje
+            message_type = message.get("type")
+            message_content = message.get("content", {})
+            sender_phone = sender.get("phoneNumber")
+            
+            if not sender_phone:
+                logger.error("No se encontró número de teléfono del remitente")
+                return func.HttpResponse(
+                    json.dumps({"error": "Missing phone number"}),
+                    mimetype="application/json",
+                    status_code=400
+                )
+            
+            if message_type == "text":
+                text_content = message_content.get("text", "")
+                logger.info(f"Mensaje de texto recibido de {sender_phone}: {text_content}")
+                
+                # Procesar con la lógica existente del bot
+                response = self._process_acs_text_message(sender_phone, text_content)
+                
+            elif message_type == "image":
+                logger.info(f"Mensaje de imagen recibido de {sender_phone}")
+                response = self._process_acs_media_message(sender_phone, "image")
+                
+            elif message_type == "document":
+                logger.info(f"Mensaje de documento recibido de {sender_phone}")
+                response = self._process_acs_media_message(sender_phone, "document")
+                
+            else:
+                logger.info(f"Tipo de mensaje no soportado: {message_type}")
+                response = self._process_acs_unsupported_message(sender_phone)
+            
+            return func.HttpResponse(
+                json.dumps(response),
+                mimetype="application/json",
+                status_code=200
+            )
+            
+        except Exception as e:
+            logger.error(f"Error manejando mensaje ACS: {str(e)}")
+            logger.error(traceback.format_exc())
+            
+            return func.HttpResponse(
+                json.dumps({"error": "Internal server error"}),
+                mimetype="application/json",
+                status_code=500
+            )
+    
+    def _process_acs_text_message(self, phone_number: str, message_text: str) -> Dict[str, Any]:
+        """
+        Procesar mensaje de texto via ACS usando la lógica existente del bot.
+        
+        Args:
+            phone_number: Número de teléfono del remitente
+            message_text: Texto del mensaje
+            
+        Returns:
+            Dict[str, Any]: Respuesta del procesamiento
+        """
+        try:
+            # Crear estructura de mensaje compatible con la lógica existente
+            message = {
+                "type": "text",
+                "text": {"body": message_text},
+                "from": phone_number,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+            # Obtener o crear usuario
+            user = self._get_or_create_user(phone_number)
+            
+            # Obtener o crear sesión
+            session = self._get_or_create_session(phone_number)
+            
+            # Procesar mensaje usando la lógica existente
+            response = self._handle_text_message(message, user, session)
+            
+            # Enviar respuesta via ACS
+            if response.get("success"):
+                response_text = response.get("message", "Gracias por tu mensaje")
+                self._send_acs_message(phone_number, response_text)
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error procesando mensaje de texto ACS: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    def _process_acs_media_message(self, phone_number: str, media_type: str) -> Dict[str, Any]:
+        """
+        Procesar mensaje de medio via ACS.
+        
+        Args:
+            phone_number: Número de teléfono del remitente
+            media_type: Tipo de medio (image, document, etc.)
+            
+        Returns:
+            Dict[str, Any]: Respuesta del procesamiento
+        """
+        try:
+            response_text = f"He recibido tu {media_type}. ¿En qué puedo ayudarte?"
+            self._send_acs_message(phone_number, response_text)
+            
+            return {
+                "success": True,
+                "message": f"Mensaje de {media_type} procesado"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error procesando mensaje de medio ACS: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    def _process_acs_unsupported_message(self, phone_number: str) -> Dict[str, Any]:
+        """
+        Procesar mensaje no soportado via ACS.
+        
+        Args:
+            phone_number: Número de teléfono del remitente
+            
+        Returns:
+            Dict[str, Any]: Respuesta del procesamiento
+        """
+        try:
+            response_text = "Lo siento, no puedo procesar este tipo de mensaje. ¿Podrías enviar texto o una imagen?"
+            self._send_acs_message(phone_number, response_text)
+            
+            return {
+                "success": True,
+                "message": "Mensaje no soportado procesado"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error procesando mensaje no soportado ACS: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    def _send_acs_message(self, phone_number: str, message: str) -> bool:
+        """
+        Enviar mensaje via Azure Communication Services.
+        
+        Args:
+            phone_number: Número de teléfono de destino
+            message: Mensaje a enviar
+            
+        Returns:
+            bool: True si se envió exitosamente
+        """
+        try:
+            from shared_code.acs_whatsapp_client import send_whatsapp_message_via_acs
+            
+            response = send_whatsapp_message_via_acs(phone_number, message)
+            logger.info(f"Mensaje enviado via ACS a {phone_number}: {response}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error enviando mensaje via ACS: {str(e)}")
+            return False
+    
+    def _handle_acs_delivery_status_update(self, event: func.EventGridEvent) -> func.HttpResponse:
+        """
+        Manejar actualización de estado de entrega.
+        
+        Args:
+            event: Event Grid event
+            
+        Returns:
+            func.HttpResponse: Respuesta HTTP
+        """
+        try:
+            event_data = event.get_json()
+            logger.info(f"Actualización de estado de entrega: {json.dumps(event_data, indent=2)}")
+            
+            return func.HttpResponse(
+                json.dumps({"status": "delivery_status_updated"}),
+                mimetype="application/json",
+                status_code=200
+            )
+            
+        except Exception as e:
+            logger.error(f"Error manejando actualización de estado: {str(e)}")
+            return func.HttpResponse(
+                json.dumps({"error": "Internal server error"}),
+                mimetype="application/json",
+                status_code=500
+            )
+    
+    def _handle_acs_read_status_update(self, event: func.EventGridEvent) -> func.HttpResponse:
+        """
+        Manejar actualización de estado de lectura.
+        
+        Args:
+            event: Event Grid event
+            
+        Returns:
+            func.HttpResponse: Respuesta HTTP
+        """
+        try:
+            event_data = event.get_json()
+            logger.info(f"Actualización de estado de lectura: {json.dumps(event_data, indent=2)}")
+            
+            return func.HttpResponse(
+                json.dumps({"status": "read_status_updated"}),
+                mimetype="application/json",
+                status_code=200
+            )
+            
+        except Exception as e:
+            logger.error(f"Error manejando actualización de lectura: {str(e)}")
+            return func.HttpResponse(
+                json.dumps({"error": "Internal server error"}),
                 mimetype="application/json",
                 status_code=500
             )
@@ -1007,12 +1283,14 @@ class WhatsAppBot:
 bot = None
 
 
-def main(req: func.HttpRequest) -> func.HttpResponse:
+def main(req: Optional[func.HttpRequest] = None, event: Optional[func.EventGridEvent] = None) -> func.HttpResponse:
     """
     Función principal de Azure Functions.
+    Maneja tanto HTTP webhooks como Event Grid events.
     
     Args:
-        req: Request HTTP
+        req: Request HTTP (para webhooks tradicionales)
+        event: Event Grid event (para eventos de ACS)
         
     Returns:
         func.HttpResponse: Respuesta HTTP
@@ -1020,7 +1298,20 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     global bot
     if bot is None:
         bot = WhatsAppBot()
-    return bot.process_message(req)
+    
+    # Si es un evento de Event Grid (ACS)
+    if event:
+        return bot.process_event_grid_event(event)
+    
+    # Si es un HTTP request (webhook tradicional)
+    if req:
+        return bot.process_message(req)
+    
+    # Si no hay ni request ni event
+    return func.HttpResponse(
+        "No se recibió request válido",
+        status_code=400
+    )
 
 
 def build_context_prompt(search_results: List[Dict[str, Any]], user_question: str) -> str:

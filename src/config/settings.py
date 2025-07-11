@@ -50,6 +50,17 @@ class Settings(BaseSettings):
     azure_computer_vision_endpoint: Optional[str] = Field(default=None, alias="AZURE_COMPUTER_VISION_ENDPOINT")
     azure_computer_vision_api_key: Optional[str] = Field(default=None, alias="AZURE_COMPUTER_VISION_API_KEY")
 
+    # Azure Communication Services (ACS)
+    acs_endpoint: Optional[str] = Field(default=None, alias="ACS_ENDPOINT")
+    acs_channel_id: Optional[str] = Field(default=None, alias="ACS_CHANNEL_ID")
+    acs_access_key: Optional[str] = Field(default=None, alias="ACS_ACCESS_KEY")
+    acs_connection_string: Optional[str] = Field(default=None, alias="ACS_CONNECTION_STRING")
+
+    # Event Grid
+    event_grid_topic_endpoint: Optional[str] = Field(default=None, alias="EVENT_GRID_TOPIC_ENDPOINT")
+    event_grid_topic_key: Optional[str] = Field(default=None, alias="EVENT_GRID_TOPIC_KEY")
+    event_grid_webhook_secret: Optional[str] = Field(default=None, alias="EVENT_GRID_WEBHOOK_SECRET")
+
 settings = Settings()
 
 def get_settings() -> Settings:
