@@ -15,7 +15,7 @@ class TestWhatsAppService:
 
     @pytest.fixture
     def mock_settings_env(self):
-        with patch('src.shared_code.whatsapp_service.settings') as mock_settings:
+        with patch('shared_code.whatsapp_service.settings') as mock_settings:
             mock_settings.access_token = "test-token"
             mock_settings.phone_number_id = "12345"
             mock_settings.recipient_waid = "54321"
@@ -25,13 +25,13 @@ class TestWhatsAppService:
 
     @pytest.fixture
     def whatsapp_service(self, mock_settings_env):
-        with patch('src.shared_code.whatsapp_service.WhatsAppService._validate_configuration'):
+        with patch('shared_code.whatsapp_service.WhatsAppService._validate_configuration'):
             service = WhatsAppService()
             service.base_url = "https://graph.facebook.com/v16.0/12345"
             service.headers = {"Authorization": "Bearer test-token", "Content-Type": "application/json"}
             return service
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_text_message_success(self, mock_post, whatsapp_service):
         mock_response = Mock()
         mock_response.json.return_value = {"messages": ["ok"]}
@@ -40,12 +40,12 @@ class TestWhatsAppService:
         result = whatsapp_service.send_text_message("Hola", recipient_id="54321")
         assert "messages" in result
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_text_message_invalid(self, mock_post, whatsapp_service):
         with pytest.raises(ValueError):
             whatsapp_service.send_text_message("")
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_text_message_http_error(self, mock_post, whatsapp_service):
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = HTTPError(response=Mock(status_code=400, text="Bad Request"))
@@ -53,13 +53,13 @@ class TestWhatsAppService:
         with pytest.raises(HTTPError):
             whatsapp_service.send_text_message("Hola")
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_text_message_request_error(self, mock_post, whatsapp_service):
         mock_post.side_effect = RequestException("Network error")
         with pytest.raises(RequestException):
             whatsapp_service.send_text_message("Hola")
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_document_message_success(self, mock_post, whatsapp_service):
         mock_response = Mock()
         mock_response.json.return_value = {"messages": ["ok"]}
@@ -68,14 +68,14 @@ class TestWhatsAppService:
         result = whatsapp_service.send_document_message("http://file", "file.pdf")
         assert "messages" in result
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_document_message_invalid(self, mock_post, whatsapp_service):
         with pytest.raises(ValueError):
             whatsapp_service.send_document_message("", "file.pdf")
         with pytest.raises(ValueError):
             whatsapp_service.send_document_message("http://file", "")
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_document_message_http_error(self, mock_post, whatsapp_service):
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = HTTPError(response=Mock(status_code=400, text="Bad Request"))
@@ -83,7 +83,7 @@ class TestWhatsAppService:
         with pytest.raises(HTTPError):
             whatsapp_service.send_document_message("http://file", "file.pdf")
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_template_message_success(self, mock_post, whatsapp_service):
         mock_response = Mock()
         mock_response.json.return_value = {"messages": ["ok"]}
@@ -92,12 +92,12 @@ class TestWhatsAppService:
         result = whatsapp_service.send_template_message("template_name", {"var": "value"})
         assert "messages" in result
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_template_message_invalid(self, mock_post, whatsapp_service):
         with pytest.raises(ValueError):
             whatsapp_service.send_template_message("", {})
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_template_message_http_error(self, mock_post, whatsapp_service):
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = HTTPError(response=Mock(status_code=400, text="Bad Request"))
@@ -139,7 +139,7 @@ class TestWhatsAppService:
         with pytest.raises(ValueError):
             whatsapp_service.process_webhook_event("")
 
-    @patch('src.shared_code.whatsapp_service.requests.get')
+    @patch('shared_code.whatsapp_service.requests.get')
     def test_get_message_status_success(self, mock_get, whatsapp_service):
         mock_response = Mock()
         mock_response.json.return_value = {"status": "delivered"}
@@ -148,12 +148,12 @@ class TestWhatsAppService:
         result = whatsapp_service.get_message_status("msgid")
         assert result["status"] == "delivered"
 
-    @patch('src.shared_code.whatsapp_service.requests.get')
+    @patch('shared_code.whatsapp_service.requests.get')
     def test_get_message_status_invalid(self, mock_get, whatsapp_service):
         with pytest.raises(ValueError):
             whatsapp_service.get_message_status("")
 
-    @patch('src.shared_code.whatsapp_service.requests.get')
+    @patch('shared_code.whatsapp_service.requests.get')
     def test_get_message_status_http_error(self, mock_get, whatsapp_service):
         mock_response = Mock()
         mock_response.raise_for_status.side_effect = HTTPError(response=Mock(status_code=400, text="Bad Request"))
@@ -161,7 +161,7 @@ class TestWhatsAppService:
         with pytest.raises(HTTPError):
             whatsapp_service.get_message_status("msgid")
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_interactive_message_success(self, mock_post, whatsapp_service):
         mock_response = Mock()
         mock_response.json.return_value = {"messages": ["ok"]}
@@ -171,12 +171,12 @@ class TestWhatsAppService:
         result = whatsapp_service.send_interactive_message("Choose one", buttons)
         assert "messages" in result
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_interactive_message_invalid(self, mock_post, whatsapp_service):
         with pytest.raises(ValueError):
             whatsapp_service.send_interactive_message("", [])
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_mark_message_as_read_success(self, mock_post, whatsapp_service):
         mock_response = Mock()
         mock_response.json.return_value = {"status": "read"}
@@ -185,12 +185,12 @@ class TestWhatsAppService:
         result = whatsapp_service.mark_message_as_read("msgid")
         assert result["status"] == "read"
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_mark_message_as_read_invalid(self, mock_post, whatsapp_service):
         with pytest.raises(ValueError):
             whatsapp_service.mark_message_as_read("")
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_quick_reply_message_success(self, mock_post, whatsapp_service):
         mock_response = Mock()
         mock_response.json.return_value = {"messages": ["ok"]}
@@ -200,19 +200,19 @@ class TestWhatsAppService:
         result = whatsapp_service.send_quick_reply_message("Choose", quick_replies)
         assert "messages" in result
 
-    @patch('src.shared_code.whatsapp_service.requests.post')
+    @patch('shared_code.whatsapp_service.requests.post')
     def test_send_quick_reply_message_invalid(self, mock_post, whatsapp_service):
         with pytest.raises(ValueError):
             whatsapp_service.send_quick_reply_message("", [])
 
-    @patch('src.shared_code.whatsapp_service.requests.get')
+    @patch('shared_code.whatsapp_service.requests.get')
     def test_health_check_success(self, mock_get, whatsapp_service):
         mock_response = Mock()
         mock_response.status_code = 200
         mock_get.return_value = mock_response
         assert whatsapp_service.health_check()
 
-    @patch('src.shared_code.whatsapp_service.requests.get')
+    @patch('shared_code.whatsapp_service.requests.get')
     def test_health_check_fail(self, mock_get, whatsapp_service):
         mock_response = Mock()
         mock_response.status_code = 500

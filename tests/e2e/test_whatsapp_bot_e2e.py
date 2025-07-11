@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime
 from typing import Dict, Any
 
-from src.whatsapp_bot.whatsapp_bot import main
-from src.shared_code.user_service import User, UserSession
+from whatsapp_bot.whatsapp_bot import main
+from shared_code.user_service import User, UserSession
 
 
 class TestWhatsAppBotE2E:
@@ -34,13 +34,13 @@ class TestWhatsAppBotE2E:
     @pytest.fixture
     def mock_services(self):
         """Mock de todos los servicios y configuración"""
-        with patch('src.whatsapp_bot.whatsapp_bot.bot', None), \
-             patch('src.whatsapp_bot.whatsapp_bot.get_settings') as mock_get_settings, \
-             patch('src.whatsapp_bot.whatsapp_bot.WhatsAppService') as mock_whatsapp, \
-             patch('src.whatsapp_bot.whatsapp_bot.OpenAIService') as mock_openai, \
-             patch('src.whatsapp_bot.whatsapp_bot.RedisService') as mock_redis, \
-             patch('src.whatsapp_bot.whatsapp_bot.VisionService') as mock_vision, \
-             patch('src.whatsapp_bot.whatsapp_bot.UserService') as mock_user_service:
+        with patch('whatsapp_bot.whatsapp_bot.bot', None), \
+             patch('whatsapp_bot.whatsapp_bot.get_settings') as mock_get_settings, \
+             patch('whatsapp_bot.whatsapp_bot.WhatsAppService') as mock_whatsapp, \
+             patch('whatsapp_bot.whatsapp_bot.OpenAIService') as mock_openai, \
+             patch('whatsapp_bot.whatsapp_bot.RedisService') as mock_redis, \
+             patch('whatsapp_bot.whatsapp_bot.VisionService') as mock_vision, \
+             patch('whatsapp_bot.whatsapp_bot.UserService') as mock_user_service:
 
             # Mock de configuración para el token de verificación
             mock_settings_obj = Mock()

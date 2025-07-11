@@ -27,7 +27,7 @@ class TestAzureBlobStorageService:
     @pytest.fixture
     def mock_settings(self):
         """Mock settings for testing."""
-        with patch('src.shared_code.azure_blob_storage.settings') as mock_settings:
+        with patch('shared_code.azure_blob_storage.settings') as mock_settings:
             mock_settings.azure_storage_connection_string = "test_connection_string"
             mock_settings.blob_container_name = "test-container"
             mock_settings.blob_account_name = "testaccount"
@@ -36,7 +36,7 @@ class TestAzureBlobStorageService:
     @pytest.fixture
     def mock_blob_service_client(self):
         """Mock BlobServiceClient."""
-        with patch('src.shared_code.azure_blob_storage.BlobServiceClient') as mock_client:
+        with patch('shared_code.azure_blob_storage.BlobServiceClient') as mock_client:
             yield mock_client
 
     @pytest.fixture
@@ -51,7 +51,7 @@ class TestAzureBlobStorageService:
         """Create AzureBlobStorageService instance with mocked dependencies."""
         mock_blob_service_client.from_connection_string.return_value.get_container_client.return_value = mock_container_client
         
-        with patch('src.shared_code.azure_blob_storage.AzureBlobStorageService._validate_connection'):
+        with patch('shared_code.azure_blob_storage.AzureBlobStorageService._validate_connection'):
             service = AzureBlobStorageService()
             service.container_client = mock_container_client
             return service

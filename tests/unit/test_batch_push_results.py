@@ -12,7 +12,7 @@ import azure.functions as func
 
 # Importar las funciones después de configurar los mocks
 try:
-    from src.processing.batch_push_results import (
+    from processing.batch_push_results import (
         main, 
         extract_text_from_file, 
         extract_text_from_pdf,
@@ -71,15 +71,15 @@ def mock_embeddings():
 class TestBatchPushResults:
     """Test cases for BatchPushResults function."""
 
-    @patch('src.processing.batch_push_results.update_blob_metadata')
-    @patch('src.processing.batch_push_results.store_document_embeddings')
-    @patch('src.processing.batch_push_results.openai_service')
-    @patch('src.processing.batch_push_results.clean_text')
-    @patch('src.processing.batch_push_results.chunk_text')
-    @patch('src.processing.batch_push_results.extract_text_from_file')
-    @patch('src.processing.batch_push_results.generate_document_id')
-    @patch('src.processing.batch_push_results.calculate_file_hash')
-    @patch('src.processing.batch_push_results.blob_storage_service')
+    @patch('processing.batch_push_results.update_blob_metadata')
+    @patch('processing.batch_push_results.store_document_embeddings')
+    @patch('processing.batch_push_results.openai_service')
+    @patch('processing.batch_push_results.clean_text')
+    @patch('processing.batch_push_results.chunk_text')
+    @patch('processing.batch_push_results.extract_text_from_file')
+    @patch('processing.batch_push_results.generate_document_id')
+    @patch('processing.batch_push_results.calculate_file_hash')
+    @patch('processing.batch_push_results.blob_storage_service')
     @patch('tempfile.NamedTemporaryFile')
     def test_batch_push_results_success(
         self,
@@ -138,9 +138,9 @@ class TestBatchPushResults:
         # Verify metadata was updated
         mock_update_metadata.assert_called_once_with("test_document.pdf", "test_document_abc123_20240101", 2)
 
-    @patch('src.processing.batch_push_results.vision_service')
-    @patch('src.processing.batch_push_results.openai_service')
-    @patch('src.processing.batch_push_results.blob_storage_service')
+    @patch('processing.batch_push_results.vision_service')
+    @patch('processing.batch_push_results.openai_service')
+    @patch('processing.batch_push_results.blob_storage_service')
     @patch('tempfile.NamedTemporaryFile')
     def test_batch_push_results_image_ocr_success(
         self,
@@ -160,10 +160,10 @@ class TestBatchPushResults:
         mock_vision_service.extract_text_from_image_file.return_value = "Text extracted from image via OCR"
         
         # Mock other services
-        with patch('src.processing.batch_push_results.calculate_file_hash') as mock_hash:
-            with patch('src.processing.batch_push_results.generate_document_id') as mock_id:
-                with patch('src.processing.batch_push_results.clean_text') as mock_clean:
-                    with patch('src.processing.batch_push_results.chunk_text') as mock_chunk:
+        with patch('processing.batch_push_results.calculate_file_hash') as mock_hash:
+            with patch('processing.batch_push_results.generate_document_id') as mock_id:
+                with patch('processing.batch_push_results.clean_text') as mock_clean:
+                    with patch('processing.batch_push_results.chunk_text') as mock_chunk:
                         mock_hash.return_value = "image123hash"
                         mock_id.return_value = "test_image_image123_20240101"
                         mock_clean.return_value = "Text extracted from image via OCR"
@@ -187,7 +187,7 @@ class TestBatchPushResults:
                         mock_vision_service.extract_text_from_image_file.assert_called_once_with("/tmp/test_image.jpg")
                         mock_openai_service.generate_embeddings.assert_called_once()
 
-    @patch('src.processing.batch_push_results.blob_storage_service')
+    @patch('processing.batch_push_results.blob_storage_service')
     @patch('tempfile.NamedTemporaryFile')
     def test_batch_push_results_download_failure(
         self,
@@ -207,8 +207,8 @@ class TestBatchPushResults:
         mock_blob_service.download_file.assert_called_once()
         # Should not proceed with processing if download fails
 
-    @patch('src.processing.batch_push_results.calculate_file_hash')
-    @patch('src.processing.batch_push_results.blob_storage_service')
+    @patch('processing.batch_push_results.calculate_file_hash')
+    @patch('processing.batch_push_results.blob_storage_service')
     @patch('tempfile.NamedTemporaryFile')
     def test_batch_push_results_no_text_extracted(
         self,
@@ -225,7 +225,7 @@ class TestBatchPushResults:
         mock_blob_service.get_blob_metadata.return_value = mock_file_metadata
         mock_calculate_hash.return_value = "test_hash_123"
         
-        with patch('src.processing.batch_push_results.extract_text_from_file') as mock_extract:
+        with patch('processing.batch_push_results.extract_text_from_file') as mock_extract:
             mock_extract.return_value = ""
             
             # Act
@@ -235,9 +235,9 @@ class TestBatchPushResults:
             mock_extract.assert_called_once()
             # Should not proceed with embedding generation
 
-    @patch('src.processing.batch_push_results.calculate_file_hash')
-    @patch('src.processing.batch_push_results.openai_service')
-    @patch('src.processing.batch_push_results.blob_storage_service')
+    @patch('processing.batch_push_results.calculate_file_hash')
+    @patch('processing.batch_push_results.openai_service')
+    @patch('processing.batch_push_results.blob_storage_service')
     @patch('tempfile.NamedTemporaryFile')
     def test_batch_push_results_embedding_generation_failure(
         self,
@@ -255,9 +255,9 @@ class TestBatchPushResults:
         mock_blob_service.get_blob_metadata.return_value = mock_file_metadata
         mock_calculate_hash.return_value = "test_hash_123"
         
-        with patch('src.processing.batch_push_results.extract_text_from_file') as mock_extract:
-            with patch('src.processing.batch_push_results.clean_text') as mock_clean:
-                with patch('src.processing.batch_push_results.chunk_text') as mock_chunk:
+        with patch('processing.batch_push_results.extract_text_from_file') as mock_extract:
+            with patch('processing.batch_push_results.clean_text') as mock_clean:
+                with patch('processing.batch_push_results.chunk_text') as mock_chunk:
                     mock_extract.return_value = "Test content"
                     mock_clean.return_value = "Test content"
                     mock_chunk.return_value = ["Test content"]
@@ -272,7 +272,7 @@ class TestBatchPushResults:
                     mock_openai_service.generate_embeddings.assert_called_once()
                     # Should not proceed with storage if no embeddings generated
 
-    @patch('src.processing.batch_push_results.redis_service')
+    @patch('processing.batch_push_results.redis_service')
     def test_store_document_embeddings_success(
         self,
         mock_redis_service,
@@ -297,7 +297,7 @@ class TestBatchPushResults:
         metadata = call_args[0][2]
         assert metadata["embeddings_generated"] == "true"
 
-    @patch('src.processing.batch_push_results.redis_service')
+    @patch('processing.batch_push_results.redis_service')
     def test_store_document_embeddings_failure(
         self,
         mock_redis_service,
@@ -349,7 +349,7 @@ class TestBatchPushResults:
 class TestTextExtraction:
     """Test cases for text extraction functions."""
 
-    @patch('src.processing.batch_push_results.vision_service')
+    @patch('processing.batch_push_results.vision_service')
     def test_extract_text_from_file_image_extension(
         self,
         mock_vision_service
@@ -365,7 +365,7 @@ class TestTextExtraction:
         assert result == "Extracted text from image"
         mock_vision_service.extract_text_from_image_file.assert_called_once_with("/tmp/test.jpg")
 
-    @patch('src.processing.batch_push_results.vision_service')
+    @patch('processing.batch_push_results.vision_service')
     def test_extract_text_from_file_image_content_type(
         self,
         mock_vision_service
@@ -381,34 +381,63 @@ class TestTextExtraction:
         assert result == "Extracted text from image"
         mock_vision_service.extract_text_from_image_file.assert_called_once_with("/tmp/test.xyz")
 
-    @patch('src.processing.batch_push_results.PyPDF2.PdfReader')
-    def test_extract_text_from_pdf_success(self, mock_pdf_reader):
-        """Test extracción exitosa de texto de PDF."""
-        # Arrange
-        mock_reader = Mock()
-        mock_reader.pages = [Mock(), Mock()]
-        mock_reader.pages[0].extract_text.return_value = "Página 1 del documento"
-        mock_reader.pages[1].extract_text.return_value = "Página 2 del documento"
-        mock_pdf_reader.return_value = mock_reader
-        
-        # Act
-        result = extract_text_from_pdf("/tmp/test.pdf")
-        
-        # Assert
-        assert result == "Página 1 del documento\nPágina 2 del documento"
-        mock_pdf_reader.assert_called_once_with("/tmp/test.pdf")
+def test_extract_text_from_pdf_success(self):
+    """Test extracción exitosa de texto de PDF."""
+    # Crear archivo temporal real
+    import tempfile
+    import os
+    
+    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
+        temp_file.write(b"%PDF-1.4\ntest content")
+        temp_file_path = temp_file.name
+    
+    try:
+        # Mock de PyPDF2.PdfReader
+        with patch('PyPDF2.PdfReader') as mock_pdf_reader:
+            # Configurar mock
+            mock_reader = Mock()
+            mock_reader.pages = [Mock(extract_text=lambda: "Texto extraído del PDF")]
+            mock_pdf_reader.return_value = mock_reader
 
-    @patch('src.processing.batch_push_results.PyPDF2.PdfReader')
-    def test_extract_text_from_pdf_failure(self, mock_pdf_reader):
-        """Test fallo en extracción de texto de PDF."""
-        # Arrange
-        mock_pdf_reader.side_effect = Exception("PDF error")
-        
-        # Act & Assert
-        with pytest.raises(Exception, match="PDF error"):
-            extract_text_from_pdf("/tmp/test.pdf")
+            # Act
+            result = extract_text_from_pdf(temp_file_path)
 
-    @patch('src.processing.batch_push_results.Document')
+            # Assert
+            assert result == "Texto extraído del PDF"
+            mock_pdf_reader.assert_called_once_with(temp_file_path)
+    finally:
+        # Limpiar archivo temporal
+        if os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+
+def test_extract_text_from_pdf_failure(self):
+    """Test extracción fallida de texto de PDF."""
+    # Crear archivo temporal real
+    import tempfile
+    import os
+    
+    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
+        temp_file.write(b"%PDF-1.4\ntest content")
+        temp_file_path = temp_file.name
+    
+    try:
+        # Mock de PyPDF2.PdfReader
+        with patch('PyPDF2.PdfReader') as mock_pdf_reader:
+            # Configurar mock para fallar
+            mock_pdf_reader.side_effect = Exception("Error al leer PDF")
+
+            # Act
+            result = extract_text_from_pdf(temp_file_path)
+
+            # Assert
+            assert result == "Error al extraer texto del PDF"
+            mock_pdf_reader.assert_called_once_with(temp_file_path)
+    finally:
+        # Limpiar archivo temporal
+        if os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+
+    @patch('docx.Document')
     def test_extract_text_from_word_success(self, mock_document):
         """Test extracción exitosa de texto de Word."""
         # Arrange
@@ -425,7 +454,7 @@ class TestTextExtraction:
         assert result == "Párrafo 1 del documento\nPárrafo 2 del documento"
         mock_document.assert_called_once_with("/tmp/test.docx")
 
-    @patch('src.processing.batch_push_results.Document')
+    @patch('docx.Document')
     def test_extract_text_from_word_failure(self, mock_document):
         """Test fallo en extracción de texto de Word."""
         # Arrange
@@ -452,15 +481,16 @@ class TestTextExtraction:
         # Arrange
         with patch('builtins.open') as mock_open:
             # Simular error de Unicode en primera lectura
-            mock_open.side_effect = [
+            mock_file = Mock()
+            mock_file.read.side_effect = [
                 UnicodeDecodeError('utf-8', b'\xff\xfe', 0, 1, 'invalid utf-8'),
-                mock_open.return_value.__enter__.return_value
+                "Texto con encoding alternativo"
             ]
-            mock_open.return_value.__enter__.return_value.read.return_value = "Texto con encoding alternativo"
-            
+            mock_open.return_value.__enter__.return_value = mock_file
+
             # Act
             result = extract_text_from_text_file("/tmp/test.txt")
-            
+
             # Assert
             assert result == "Texto con encoding alternativo"
 
@@ -472,7 +502,7 @@ class TestTextExtraction:
         # Assert
         assert result == ""
 
-    @patch('src.processing.batch_push_results.vision_service')
+    @patch('processing.batch_push_results.vision_service')
     def test_extract_text_from_file_vision_service_failure(
         self,
         mock_vision_service

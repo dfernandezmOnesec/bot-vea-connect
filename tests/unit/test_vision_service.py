@@ -15,21 +15,21 @@ class TestVisionService:
 
     @pytest.fixture
     def mock_settings_env(self):
-        with patch('src.shared_code.vision_service.settings') as mock_settings:
+        with patch('shared_code.vision_service.settings') as mock_settings:
             mock_settings.computer_vision_endpoint = "https://test.cognitiveservices.azure.com/"
             mock_settings.computer_vision_key = "test-key"
             yield mock_settings
 
     @pytest.fixture
     def mock_cv_client(self):
-        with patch('src.shared_code.vision_service.ComputerVisionClient') as mock_client:
+        with patch('shared_code.vision_service.ComputerVisionClient') as mock_client:
             yield mock_client
 
     @pytest.fixture
     def vision_service(self, mock_settings_env, mock_cv_client):
         # Mock completamente la inicialización para evitar llamadas reales a Azure
-        with patch('src.shared_code.vision_service.VisionService._validate_connection'), \
-             patch('src.shared_code.vision_service.VisionService.__init__') as mock_init:
+        with patch('shared_code.vision_service.VisionService._validate_connection'), \
+             patch('shared_code.vision_service.VisionService.__init__') as mock_init:
             service = VisionService.__new__(VisionService)  # Crear instancia sin __init__
             service.client = Mock()
             # Configurar atributos necesarios
@@ -151,11 +151,19 @@ class TestVisionService:
         # Configurar el mock para que funcione como context manager
         mock_img.__enter__ = Mock(return_value=mock_img)
         mock_img.__exit__ = Mock(return_value=None)
-        
+        # Configurar _getexif para que retorne un diccionario válido
+        mock_img._getexif.return_value = {271: "Canon", 272: "EOS 5D"}
+
         with patch('PIL.Image.open', return_value=mock_img):
             result = vision_service.get_image_metadata("test.jpg")
+            
             assert result["format"] == "JPEG"
+            assert result["mode"] == "RGB"
+            assert result["size"] == (100, 100)
             assert result["width"] == 100
+            assert result["height"] == 100
+            assert result["file_size"] == 1234
+            assert result["exif"] == {271: "Canon", 272: "EOS 5D"}
 
     def test_get_image_metadata_not_found(self, vision_service):
         with patch('PIL.Image.open', side_effect=FileNotFoundError):

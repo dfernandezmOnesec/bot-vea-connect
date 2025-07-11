@@ -9,8 +9,8 @@ import json
 import logging
 from unittest.mock import Mock, patch, MagicMock
 import azure.functions as func
-from src.processing.batch_start_processing import main as batch_start_main
-from src.processing.batch_push_results import main as batch_push_main
+from processing.batch_start_processing import main as batch_start_main
+from processing.batch_push_results import main as batch_push_main
 
 logger = logging.getLogger(__name__)
 
@@ -20,13 +20,13 @@ class TestE2EProcessing:
     @pytest.fixture
     def mock_services(self):
         """Mock all external services for E2E testing."""
-        with patch('src.processing.batch_start_processing.blob_storage_service') as mock_blob, \
-             patch('src.processing.batch_start_processing.QueueClient') as mock_queue_client, \
-             patch('src.processing.batch_push_results.blob_storage_service') as mock_blob_push, \
-             patch('src.processing.batch_push_results.vision_service', create=True) as mock_vision, \
-             patch('src.processing.batch_push_results.openai_service', create=True) as mock_openai, \
-             patch('src.processing.batch_push_results.redis_service', create=True) as mock_redis, \
-             patch('src.processing.batch_push_results.extract_text_from_file') as mock_extract_text, \
+        with patch('processing.batch_start_processing.blob_storage_service') as mock_blob, \
+             patch('processing.batch_start_processing.QueueClient') as mock_queue_client, \
+             patch('processing.batch_push_results.blob_storage_service') as mock_blob_push, \
+             patch('processing.batch_push_results.vision_service', create=True) as mock_vision, \
+             patch('processing.batch_push_results.openai_service', create=True) as mock_openai, \
+             patch('processing.batch_push_results.redis_service', create=True) as mock_redis, \
+             patch('processing.batch_push_results.extract_text_from_file') as mock_extract_text, \
              patch('shared_code.openai_service.openai_service', create=True) as mock_openai_whatsapp, \
              patch('shared_code.redis_service.redis_service', create=True) as mock_redis_whatsapp, \
              patch('shared_code.whatsapp_service.whatsapp_service', create=True) as mock_whatsapp:
@@ -161,7 +161,7 @@ class TestE2EProcessing:
         logger.info("Step 4: Testing WhatsAppBot with RAG")
         
         # Mock the WhatsApp main function to avoid real service initialization
-        with patch('src.whatsapp_bot.whatsapp_bot.main') as mock_whatsapp_main:
+        with patch('whatsapp_bot.whatsapp_bot.main') as mock_whatsapp_main:
             mock_whatsapp_main.return_value = func.HttpResponse(
                 "OK",
                 status_code=200
@@ -190,7 +190,7 @@ class TestE2EProcessing:
             }
             
             # Import and call the mocked function
-            from src.whatsapp_bot.whatsapp_bot import main as whatsapp_main
+            from whatsapp_bot.whatsapp_bot import main as whatsapp_main
             whatsapp_response = whatsapp_main(mock_http_request)
             
             # Verify WhatsAppBot worked with RAG
@@ -217,7 +217,7 @@ class TestE2EProcessing:
         logger.info("Testing E2E flow with no context fallback")
         
         # Mock the WhatsApp main function to avoid real service initialization
-        with patch('src.whatsapp_bot.whatsapp_bot.main') as mock_whatsapp_main:
+        with patch('whatsapp_bot.whatsapp_bot.main') as mock_whatsapp_main:
             mock_whatsapp_main.return_value = func.HttpResponse(
                 "OK",
                 status_code=200
@@ -247,7 +247,7 @@ class TestE2EProcessing:
             }
             
             # Import and call the mocked function
-            from src.whatsapp_bot.whatsapp_bot import main as whatsapp_main
+            from whatsapp_bot.whatsapp_bot import main as whatsapp_main
             whatsapp_response = whatsapp_main(mock_http_request)
             
             # Verify WhatsAppBot worked with fallback
@@ -268,7 +268,7 @@ class TestE2EProcessing:
         logger.info("Testing E2E flow with error handling")
         
         # Mock the WhatsApp main function to avoid real service initialization
-        with patch('src.whatsapp_bot.whatsapp_bot.main') as mock_whatsapp_main:
+        with patch('whatsapp_bot.whatsapp_bot.main') as mock_whatsapp_main:
             mock_whatsapp_main.return_value = func.HttpResponse(
                 "OK",
                 status_code=200
@@ -298,7 +298,7 @@ class TestE2EProcessing:
             }
             
             # Import and call the mocked function
-            from src.whatsapp_bot.whatsapp_bot import main as whatsapp_main
+            from whatsapp_bot.whatsapp_bot import main as whatsapp_main
             whatsapp_response = whatsapp_main(mock_http_request)
             
             # Verify WhatsAppBot handled error gracefully
@@ -315,7 +315,7 @@ class TestE2EProcessing:
         logger.info("Testing WhatsApp webhook verification")
 
         # Mock the WhatsApp main function to avoid real service initialization
-        with patch('src.whatsapp_bot.whatsapp_bot.main') as mock_whatsapp_main:
+        with patch('whatsapp_bot.whatsapp_bot.main') as mock_whatsapp_main:
             mock_whatsapp_main.return_value = func.HttpResponse(
                 "test_challenge",
                 status_code=200
@@ -330,7 +330,7 @@ class TestE2EProcessing:
             }
             
             # Import and call the mocked function
-            from src.whatsapp_bot.whatsapp_bot import main as whatsapp_main
+            from whatsapp_bot.whatsapp_bot import main as whatsapp_main
             whatsapp_response = whatsapp_main(mock_http_request)
             
             # Verify webhook verification worked

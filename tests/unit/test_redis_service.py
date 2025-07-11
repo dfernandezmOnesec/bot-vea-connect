@@ -15,7 +15,7 @@ class TestRedisService:
 
     @pytest.fixture
     def mock_settings_env(self):
-        with patch('src.shared_code.redis_service.settings') as mock_settings:
+        with patch('shared_code.redis_service.settings') as mock_settings:
             mock_settings.redis_host = "localhost"
             mock_settings.redis_port = 6379
             mock_settings.redis_username = ""
@@ -25,7 +25,7 @@ class TestRedisService:
 
     @pytest.fixture
     def mock_redis(self):
-        with patch('src.shared_code.redis_service.redis.Redis') as mock_redis:
+        with patch('shared_code.redis_service.redis.Redis') as mock_redis:
             yield mock_redis
 
     @pytest.fixture
@@ -37,7 +37,7 @@ class TestRedisService:
         mock_client.get.return_value = b"test_value"
         mock_redis.return_value = mock_client
         
-        with patch('src.shared_code.redis_service.RedisService._validate_connection'):
+        with patch('shared_code.redis_service.RedisService._validate_connection'):
             service = RedisService()
             return service
 

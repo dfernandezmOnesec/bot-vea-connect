@@ -15,7 +15,7 @@ class TestOpenAIService:
 
     @pytest.fixture
     def mock_settings_env(self):
-        with patch('src.shared_code.openai_service.settings') as mock_settings:
+        with patch('shared_code.openai_service.settings') as mock_settings:
             mock_settings.azure_openai_endpoint = "https://test.openai.azure.com/"
             mock_settings.azure_openai_api_key = "test-key"
             mock_settings.azure_openai_chat_api_version = "2024-02-15-preview"
@@ -28,13 +28,13 @@ class TestOpenAIService:
 
     @pytest.fixture
     def mock_azure_openai(self):
-        with patch('src.shared_code.openai_service.AzureOpenAI') as mock_client:
+        with patch('shared_code.openai_service.AzureOpenAI') as mock_client:
             yield mock_client
 
     @pytest.fixture
     def openai_service(self, mock_settings_env, mock_azure_openai):
         # Mockear completamente la clase OpenAIService para evitar problemas de inicialización
-        with patch('src.shared_code.openai_service.OpenAIService') as mock_service_class:
+        with patch('shared_code.openai_service.OpenAIService') as mock_service_class:
             mock_service = Mock(spec=OpenAIService)
             mock_service.chat_client = Mock()
             mock_service.embeddings_client = Mock()

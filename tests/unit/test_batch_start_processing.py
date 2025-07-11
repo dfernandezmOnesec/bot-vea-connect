@@ -20,7 +20,7 @@ class TestBatchStartProcessing:
     def mock_services(self):
         """Mock de todos los servicios"""
         with patch.object(blob_storage_service, 'list_blobs') as mock_blob_list, \
-             patch('src.processing.batch_start_processing.settings') as mock_settings, \
+             patch('processing.batch_start_processing.settings') as mock_settings, \
              patch.object(QueueClient, 'from_connection_string') as mock_queue_from_conn:
             
             # Configurar settings mock
